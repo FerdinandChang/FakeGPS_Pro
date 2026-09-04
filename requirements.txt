@@ -1,41 +1,19 @@
-# FakeGPS Pro - Pure Python Dependencies (No C++ compiler required)
+# FakeGPS Pro - Core Dependencies
 pywebview>=5.0
 requests>=2.31.0
 cryptography>=41.0.0
 construct>=2.10.70
 construct-typing>=0.8.0
 qh3>=1.0.0,<2.0.0
-pytun_pmd3>=0.1.0; sys_platform == 'win32'
-pywin32>=306; sys_platform == 'win32'
-pyobjc-framework-WebKit; sys_platform == 'darwin'
-pygnuutils>=0.1.1
-pycrashreport>=2.0.0
-pyiosbackup>=0.2.4
-python-pcapng>=2.1.1
-tqdm>=4.66.0
-xonsh>=0.24.0
-typer-injector>=0.1.0
-hexdump>=3.3
-asgiwebdav>=0.21.0
-ifaddr>=0.2.0
-pyusb>=1.2.1
-bpylist2>=4.1.1
-questionary>=2.0.0
-pmd-pytcp>=0.3.7
+pymobiledevice3>=11.0.0
 developer_disk_image>=0.3.0
-asn1>=2.7.1
-coloredlogs>=15.0.1
-pykdebugparser>=1.2.7
-ipsw_parser>=1.6.0
-hyperframe>=6.0.1
-srptools>=1.0.1
-opack2>=1.0.0
-prompt_toolkit>=3.0.43
-plumbum>=1.8.2
 pyimg4>=0.8.8
-defusedxml>=0.7.1
-packaging
-traitlets
-ipython
 gpxpy
 psutil
+pyobjc-framework-WebKit; sys_platform == 'darwin'
+pytun_pmd3>=0.1.0; sys_platform == 'win32'
+pywin32>=306; sys_platform == 'win32'
+questionary
+packaging
+coloredlogs
+pyusb
