@@ -1,0 +1,545 @@
+:root {
+    --bg-primary: #121826;
+    --bg-secondary: #1a2234;
+    --bg-tertiary: #242f46;
+    --accent-blue: #3b82f6;
+    --accent-blue-hover: #2563eb;
+    --accent-green: #10b981;
+    --accent-red: #ef4444;
+    --accent-yellow: #f59e0b;
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    --border-color: #374151;
+    --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    user-select: none;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 頂部導航列 */
+header {
+    height: 56px;
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.25rem;
+    z-index: 1000;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #60a5fa;
+}
+
+.brand svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+}
+
+.device-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.select-device {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+    outline: none;
+    cursor: pointer;
+}
+
+.btn {
+    padding: 0.45rem 0.9rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--accent-blue);
+    color: white;
+}
+.btn-primary:hover {
+    background-color: var(--accent-blue-hover);
+}
+
+.btn-danger {
+    background-color: #dc2626;
+    color: white;
+}
+.btn-danger:hover {
+    background-color: #b91c1c;
+}
+
+.btn-secondary {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+.btn-secondary:hover {
+    background-color: #2d3a54;
+}
+
+.status-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    background-color: rgba(107, 114, 128, 0.2);
+    color: var(--text-secondary);
+}
+
+.status-badge.connected {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: var(--accent-green);
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: currentColor;
+}
+
+/* 主內容區 */
+main {
+    flex: 1;
+    position: relative;
+    display: flex;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+    background-color: #0b0f19;
+}
+
+/* 左側控制面板 (浮動) */
+.floating-panel {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    width: 400px;
+    background-color: rgba(26, 34, 52, 0.94);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.tabs {
+    display: flex;
+    background-color: var(--bg-primary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab {
+    flex: 1;
+    padding: 0.65rem 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    transition: all 0.2s;
+}
+
+.tab.active {
+    color: #60a5fa;
+    border-bottom: 2px solid #60a5fa;
+    background-color: rgba(96, 165, 250, 0.08);
+}
+
+.panel-content {
+    padding: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+.search-box {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.search-input {
+    flex: 1;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 0.55rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    outline: none;
+}
+.search-input:focus {
+    border-color: var(--accent-blue);
+}
+
+/* 座標卡片 */
+.coord-card {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.coord-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+}
+.coord-label {
+    color: var(--text-secondary);
+}
+.coord-val {
+    font-weight: 600;
+    color: #93c5fd;
+    font-family: monospace;
+}
+
+/* 冷卻時間卡片 */
+.cooldown-card {
+    background-color: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 8px;
+    padding: 0.65rem 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.cooldown-text {
+    font-size: 0.8rem;
+    color: #fcd34d;
+}
+.cooldown-timer {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fbbf24;
+    font-family: monospace;
+}
+
+/* 速度控制群組 */
+.speed-control {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.speed-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+.speed-value {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+.speed-presets {
+    display: flex;
+    gap: 0.4rem;
+}
+.speed-btn {
+    flex: 1;
+    padding: 0.4rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+}
+.speed-btn:hover, .speed-btn.active {
+    background-color: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+}
+input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent-blue);
+    cursor: pointer;
+}
+
+/* 搖桿面板 (右下角) */
+.joystick-container {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    background-color: rgba(26, 34, 52, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1rem;
+    box-shadow: var(--card-shadow);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.joystick-pad {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #242f46 0%, #171d2b 100%);
+    border: 2px solid var(--border-color);
+    position: relative;
+    touch-action: none;
+    cursor: pointer;
+}
+
+.joystick-stick {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    transition: transform 0.05s ease-out;
+}
+
+.wasd-hints {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+.wasd-key {
+    display: inline-block;
+    padding: 2px 6px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-weight: 600;
+    margin: 0 1px;
+}
+
+/* Pipi Mushroom 純點卡片 */
+.pipi-spot-card {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.65rem 0.8rem;
+    margin-bottom: 0.45rem;
+    transition: transform 0.1s, border-color 0.1s;
+}
+.pipi-spot-card:hover {
+    border-color: #60a5fa;
+    transform: translateY(-1px);
+}
+.pipi-badge {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+.pipi-filter-row {
+    display: flex;
+    gap: 0.35rem;
+    margin-bottom: 0.4rem;
+}
+.pipi-filter-row select {
+    flex: 1;
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.8rem;
+    outline: none;
+}
+
+/* ================= 授權啟用全螢幕彈窗 ================= */
+.license-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.license-card {
+    background: #1e293b;
+    border: 1px solid #3b82f6;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(59, 130, 246, 0.3);
+    width: 100%;
+    max-width: 480px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    animation: licensePop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes licensePop {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.license-header {
+    text-align: center;
+}
+
+.license-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.license-header h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 0.35rem;
+}
+
+.license-header p {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    line-height: 1.4;
+}
+
+.license-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.machine-id-box {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 0.75rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.machine-id-box .label {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.machine-id-box .id-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.machine-id-box code {
+    font-family: Consolas, monospace;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #38bdf8;
+    letter-spacing: 1px;
+}
+
+.btn-block {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.license-status-msg {
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.license-status-msg.error {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+}
+
+.license-status-msg.success {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #6ee7b7;
+}
+
+.license-footer {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #64748b;
+    border-top: 1px solid #334155;
+    padding-top: 0.75rem;
+}
+

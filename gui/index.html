@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FakeGPS Pro - iOS 定位覆蓋與移動模擬器</title>
+    <!-- Local Leaflet CSS & App Style -->
+    <link rel="stylesheet" href="css/leaflet.css" />
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+    <!-- 頂部選單與狀態列 -->
+    <header>
+        <div class="brand">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+            <span>FakeGPS Pro</span>
+        </div>
+
+        <div class="device-bar">
+            <select id="device-select" class="select-device">
+                <option value="">正在偵測裝置...</option>
+            </select>
+            <button id="btn-refresh-devices" class="btn btn-secondary" title="重新掃描 USB 裝置">🔄 重新整理</button>
+            <button id="btn-connect" class="btn btn-primary">連線裝置</button>
+            <button id="btn-dev-mode" class="btn btn-secondary" style="background: rgba(255, 170, 0, 0.12); border-color: rgba(255, 170, 0, 0.4); color: #ffbb33;" title="強制在 iPhone 設定中顯露或啟用開發者模式">🛠️ 喚醒開發者模式</button>
+            <div id="status-badge" class="status-badge">
+                <div class="dot"></div>
+                <span id="status-text">未連線</span>
+            </div>
+            <button id="btn-reset-gps" class="btn btn-danger" title="停止模擬並還原手機真實 GPS">還原真實定位</button>
+            <button onclick="openManual()" class="btn btn-secondary" title="開啟完整使用手冊與技術指南">📖 說明手冊</button>
+        </div>
+    </header>
+
+    <!-- 主地圖區 -->
+    <main>
+        <div id="map"></div>
+
+        <!-- 左側控制面板 -->
+        <div class="floating-panel">
+            <div class="tabs">
+                <button class="tab active" data-mode="teleport">🎯 瞬移</button>
+                <button class="tab" data-mode="joystick">🕹️ 搖桿</button>
+                <button class="tab" data-mode="route">📍 路線</button>
+                <button class="tab" id="tab-pipi" data-mode="pipi">🍄 皮皮純點</button>
+            </div>
+
+            <div class="panel-content">
+                <!-- 搜尋列 -->
+                <div class="search-box">
+                    <input type="text" id="search-input" class="search-input" placeholder="搜尋地名或經緯度 (如 25.033, 121.564)" />
+                    <button id="btn-search" class="btn btn-primary">搜尋</button>
+                </div>
+
+                <!-- 當前覆蓋座標卡片 -->
+                <div class="coord-card">
+                    <div class="coord-row">
+                        <span class="coord-label">當前模擬經緯度:</span>
+                    </div>
+                    <div class="coord-row">
+                        <span class="coord-label">緯度 (Lat):</span>
+                        <span id="cur-lat" class="coord-val">25.033964</span>
+                    </div>
+                    <div class="coord-row">
+                        <span class="coord-label">經度 (Lon):</span>
+                        <span id="cur-lon" class="coord-val">121.564468</span>
+                    </div>
+                </div>
+
+                <!-- 冷卻時間提示 (寶可夢/MHNow 防封) -->
+                <div class="cooldown-card">
+                    <div>
+                        <div class="cooldown-text">遊戲冷卻倒數計時</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">建議冷卻完畢後再進行遊戲操作</div>
+                    </div>
+                    <div id="active-cooldown" class="cooldown-timer">00:00 (安全)</div>
+                </div>
+
+                <!-- 速度控制器 -->
+                <div class="speed-control">
+                    <div class="speed-header">
+                        <span>移動速度</span>
+                        <span id="speed-display" class="speed-value">3.6 km/h</span>
+                    </div>
+                    <div class="speed-presets">
+                        <button class="speed-btn active" data-speed="3.6">🚶 步行 (3.6km/h)</button>
+                        <button class="speed-btn" data-speed="15">🚲 單車 (15km/h)</button>
+                        <button class="speed-btn" data-speed="36">🚗 開車 (36km/h)</button>
+                        <button class="speed-btn" data-speed="72">🚄 高速 (72km/h)</button>
+                    </div>
+                    <input type="range" id="speed-slider" min="1" max="100" step="0.5" value="3.6" />
+                </div>
+
+                <!-- 模式 1: 瞬移面板 -->
+                <div id="panel-teleport" class="mode-panel">
+                    <div class="coord-card" style="margin-bottom: 0.8rem;">
+                        <div class="coord-row">
+                            <span class="coord-label">目標緯度:</span>
+                            <span id="target-lat" class="coord-val">--</span>
+                        </div>
+                        <div class="coord-row">
+                            <span class="coord-label">目標經度:</span>
+                            <span id="target-lon" class="coord-val">--</span>
+                        </div>
+                        <div class="coord-row">
+                            <span class="coord-label">直線距離:</span>
+                            <span id="target-dist" class="coord-val">--</span>
+                        </div>
+                        <div class="coord-row">
+                            <span class="coord-label">建議冷卻:</span>
+                            <span id="cooldown-estimate" class="coord-val" style="color: #f59e0b;">--</span>
+                        </div>
+                    </div>
+                    <button id="btn-teleport" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem;">⚡ 瞬移到此處</button>
+                </div>
+
+                <!-- 模式 2: 搖桿面板 -->
+                <div id="panel-joystick" class="mode-panel" style="display: none;">
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;">
+                        使用右下角的<b>虛擬搖桿</b>或鍵盤 <span class="wasd-key">W</span><span class="wasd-key">A</span><span class="wasd-key">S</span><span class="wasd-key">D</span> 即可進行即時 360 度無死角巡航移動。
+                    </p>
+                </div>
+
+                <!-- 模式 3: 路線規劃面板 -->
+                <div id="panel-route" class="mode-panel" style="display: none;">
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                        在地圖上點擊以新增途經點，系統將自動沿路徑步進模擬。
+                    </p>
+                    <div id="waypoint-list" class="waypoint-list"></div>
+                    <div style="margin: 0.6rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" id="route-loop" />
+                        <label for="route-loop" style="font-size: 0.8rem; cursor: pointer;">循環巡航 (來回往返)</label>
+                    </div>
+                    <div style="display: flex; gap: 0.4rem;">
+                        <button id="btn-start-route" class="btn btn-primary" style="flex: 1; justify-content: center;">▶ 開始路線移動</button>
+                        <button id="btn-stop-route" class="btn btn-danger" style="flex: 1; justify-content: center; display: none;">⏹ 停止移動</button>
+                        <button onclick="clearWaypoints()" class="btn btn-secondary">清空</button>
+                    </div>
+                </div>
+
+                <!-- 模式 4: Pipi Mushroom 純點列表與蘑菇戰力面板 -->
+                <div id="panel-pipi" class="mode-panel" style="display: none;">
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                        <b>🍄 Pipi Mushroom 純點與蘑菇戰情室</b>
+                    </div>
+
+                    <!-- 蘑菇戰力統計即時快速入口 -->
+                    <div class="coord-card" style="margin-bottom: 0.6rem; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.3);">
+                        <div style="font-size: 0.8rem; font-weight: 600; color: #93c5fd; margin-bottom: 0.3rem;">
+                            ⚔️ 蘑菇戰力統計 (即時戰況)
+                        </div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem;">
+                            全台未滿5人打蘑菇即時名單，一鍵開啟搶位打蘑菇：
+                        </div>
+                        <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                            <button onclick="openExternalUrl('https://pipimushroom.com/ppmushroom.aspx?regionCode=TW&engagement=under_five')" class="btn btn-primary btn-sm" style="flex: 1; justify-content: center;">
+                                🌐 打開全台未滿5人蘑菇
+                            </button>
+                            <button onclick="openExternalUrl('https://pipimushroom.com/acclist.aspx')" class="btn btn-secondary btn-sm">
+                                🌐 開啟純點官網
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 篩選列 -->
+                    <div class="pipi-filter-row">
+                        <select id="pipi-city"><option value="">載入縣市中...</option></select>
+                        <select id="pipi-area"><option value="">全部行政區</option></select>
+                    </div>
+                    <div class="pipi-filter-row">
+                        <select id="pipi-category"><option value="">所有飾品分類</option></select>
+                    </div>
+                    <div class="search-box" style="margin-bottom: 0.6rem;">
+                        <input type="text" id="pipi-search" class="search-input" placeholder="搜尋純點或貼上經緯度 (如 25.033, 121.564)" />
+                        <button id="btn-pipi-search" class="btn btn-primary">查詢/傳送</button>
+                    </div>
+                    <!-- 純點列表容器 -->
+                    <div id="pipi-spot-list" style="max-height: calc(100vh - 540px); overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 虛擬搖桿 (右下角) -->
+        <div id="joystick-container" class="joystick-container" style="display: none;">
+            <div id="joystick-pad" class="joystick-pad">
+                <div id="joystick-stick" class="joystick-stick"></div>
+            </div>
+            <div class="wasd-hints">
+                鍵盤 <span class="wasd-key">W</span><span class="wasd-key">A</span><span class="wasd-key">S</span><span class="wasd-key">D</span> / 方向鍵
+            </div>
+        </div>
+
+        <!-- 軟體授權啟用遮罩彈窗 (未啟用時強制鎖定) -->
+        <div id="license-overlay" class="license-overlay" style="display: none;">
+            <div class="license-card">
+                <div class="license-header">
+                    <div class="license-icon">🔑</div>
+                    <h2>FakeGPS Pro 軟體授權啟用</h2>
+                    <p>本軟體採一機一碼雲端綁定授權，請輸入您的專屬啟用序號。</p>
+                </div>
+
+                <div class="license-body">
+                    <div class="machine-id-box">
+                        <span class="label">本機硬體識別碼 (Machine ID)：</span>
+                        <div class="id-wrapper">
+                            <code id="display-machine-id">正在取得中...</code>
+                            <button id="btn-copy-mid" class="btn btn-sm btn-secondary" title="複製機器碼">📋 複製</button>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="license-input-key">啟用序號 (License Key)：</label>
+                        <input type="text" id="license-input-key" class="input-text" placeholder="例如：FAKEGPS-ABCD-1234" autocomplete="off" spellcheck="false" />
+                    </div>
+
+                    <div id="license-status-msg" class="license-status-msg" style="display: none;"></div>
+
+                    <button id="btn-activate-license" class="btn btn-primary btn-block">🚀 立即線上驗證並啟用</button>
+                </div>
+
+                <div class="license-footer">
+                    <span>💡 單次輸入後即與此電腦綁定，日後啟動自動解鎖。</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Local Leaflet JS & App Scripts -->
+    <script src="js/leaflet.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/joystick.js"></script>
+    <script src="js/pipi.js"></script>
+</body>
+</html>

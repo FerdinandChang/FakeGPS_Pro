@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FakeGPS Pro - 完整使用手冊與技術指南</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #1e293b;
+            --bg-hover: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #60a5fa;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --border-color: #334155;
+            --sidebar-width: 290px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 側邊導航欄 */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            overflow-y: auto;
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .brand-icon {
+            font-size: 1.75rem;
+        }
+
+        .brand-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.6rem 0.8rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(59, 130, 246, 0.15);
+            color: var(--accent-blue-light);
+        }
+
+        /* 主要內容區 */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 2.5rem 3.5rem;
+            max-width: 1000px;
+        }
+
+        header.doc-header {
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .doc-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+
+        .doc-subtitle {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+        }
+
+        /* 章節結構 */
+        section {
+            margin-bottom: 3.5rem;
+            scroll-margin-top: 2rem;
+        }
+
+        h2 {
+            font-size: 1.45rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-left: 4px solid var(--accent-blue);
+            padding-left: 0.75rem;
+        }
+
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin: 1.25rem 0 0.75rem 0;
+            color: #93c5fd;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: #cbd5e1;
+        }
+
+        /* 資訊卡片與步驟盒 */
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .step-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .step-item {
+            display: flex;
+            gap: 1rem;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1rem 1.2rem;
+        }
+
+        .step-num {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: #fff;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .step-body h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 0.25rem;
+        }
+
+        .step-body p {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            margin-bottom: 0;
+        }
+
+        /* 警告與提示盒 */
+        .alert {
+            padding: 1rem 1.25rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            display: flex;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .alert-info {
+            background-color: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #bfdbfe;
+        }
+
+        .alert-warning {
+            background-color: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #fde68a;
+        }
+
+        .alert-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #a7f3d0;
+        }
+
+        /* 表格樣式 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.88rem;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: rgba(15, 23, 42, 0.8);
+            color: #93c5fd;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        /* 按鍵與代碼 */
+        kbd {
+            background: #334155;
+            color: #f8fafc;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            border: 1px solid #475569;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+        }
+
+        code {
+            background: #0f172a;
+            color: #38bdf8;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 860px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--border-color); }
+            .main-content { margin-left: 0; padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 左側導覽列 -->
+    <nav class="sidebar">
+        <div class="brand">
+            <span class="brand-icon">📍</span>
+            <div>
+                <div class="brand-title">FakeGPS Pro</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">免安裝版 iOS 定位修改手冊</div>
+            </div>
+        </div>
+
+        <ul class="nav-list">
+            <li><a href="#quick-start" class="nav-link active">⚡ 1. 快速開始 (免安裝版)</a></li>
+            <li><a href="#license" class="nav-link">🔑 2. 軟體授權與序號啟用</a></li>
+            <li><a href="#dev-mode" class="nav-link">🛡️ 3. 開發者模式啟用</a></li>
+            <li><a href="#connection" class="nav-link">🔌 4. 裝置連線與 Wi-Fi 同步</a></li>
+            <li><a href="#features" class="nav-link">🕹️ 5. 四大核心操作模式</a></li>
+            <li><a href="#pipi" class="nav-link">🍄 6. 皮皮純點與蘑菇戰情室</a></li>
+            <li><a href="#flower-rules" class="nav-link">🌸 7. 皮克敏種花完全攻略</a></li>
+            <li><a href="#steps-vs-gps" class="nav-link">🚶 8. 步數困難與硬體解析</a></li>
+            <li><a href="#faq" class="nav-link">❓ 9. 常見問題與故障排除</a></li>
+        </ul>
+    </nav>
+
+    <!-- 主內容區 -->
+    <main class="main-content">
+        <header class="doc-header">
+            <h1 class="doc-title">FakeGPS Pro 使用者手冊</h1>
+            <p class="doc-subtitle">針對 iOS 15 ~ 18+ (含 iOS 26 內部版本) 全域免越獄 GPS 模擬、一機一碼授權與遊戲輔助指南</p>
+        </header>
+
+        <!-- 1. 快速開始 (免安裝版) -->
+        <section id="quick-start">
+            <h2>⚡ 1. 快速開始 (綠色免安裝版)</h2>
+            <p>FakeGPS Pro 已封裝為<b>獨立免安裝 Windows 應用程式</b>，內建完整執行環境與驅動，使用者電腦<b>無需安裝 Python 或跑指令</b>，解壓縮即可直接使用！</p>
+            
+            <div class="step-list">
+                <div class="step-item">
+                    <div class="step-num">1</div>
+                    <div class="step-body">
+                        <h4>安裝 Apple iTunes（唯一定義環境）</h4>
+                        <p>確認電腦已安裝 Windows 版 <a href="https://www.apple.com/itunes/" target="_blank" style="color: #60a5fa;">Apple iTunes</a>（提供 Apple 官方 USB 通訊驅動）。</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">2</div>
+                    <div class="step-body">
+                        <h4>一鍵啟動主程式</h4>
+                        <p>解壓縮資料夾後，直接雙擊 <code>FakeGPS_Pro.exe</code> 即可啟動視窗。</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">3</div>
+                    <div class="step-body">
+                        <h4>連接 iPhone 並連線</h4>
+                        <p>使用傳輸線連接 iPhone 與電腦，解鎖手機並點選「<b>信任這部電腦</b>」，回到視窗點擊「<b>連線裝置</b>」即可開始操作！</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. 軟體授權與序號啟用 -->
+        <section id="license">
+            <h2>🔑 2. 軟體授權與一機一碼啟用規則</h2>
+            <p>本軟體採用 <b>Google 雲端單次核銷</b> 與 <b>一機一碼硬體綁定機制</b>，保障授權正當性。</p>
+
+            <div class="alert alert-info">
+                <span>💡 <b>單次核銷規則</b>：每一組啟用序號在線上輸入驗證後，雲端會立即鎖定該台電腦的硬體識別碼（Machine ID），該序號自動作廢，無法在第二台電腦重複使用。</span>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top: 0;">首次啟用步驟：</h3>
+                <div class="step-list">
+                    <div class="step-item">
+                        <div class="step-num">1</div>
+                        <div class="step-body">
+                            <h4>開啟軟體彈出授權視窗</h4>
+                            <p>首次開啟軟體時會跳出「FakeGPS Pro 軟體授權啟用」視窗，視窗中會自動顯示您電腦的 16 碼 <code>Machine ID</code>。</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num">2</div>
+                        <div class="step-body">
+                            <h4>輸入專屬啟用序號</h4>
+                            <p>在輸入框貼上您取得的啟用序號（例如 <code>FAKEGPS-XXXX-YYYY</code>），點擊「<b>🚀 立即線上驗證並啟用</b>」。</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num">3</div>
+                        <div class="step-body">
+                            <h4>核銷成功與永久離線通行證</h4>
+                            <p>驗證通過後彈窗自動關閉。本機會生成加密數位授權證書，日後啟動<b>自動解鎖秒開</b>，出門拔掉網路線也能離線正常使用！</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. 開發者模式啟用 -->
+        <section id="dev-mode">
+            <h2>🛡️ 3. 開發者模式啟用 (iOS 16 / 17 / 18)</h2>
+            <p>Apple 在 iOS 16 之後為了安全考量預設隱藏「開發者模式」。在首次修改定位前，需開啟該開關。</p>
+
+            <div class="alert alert-success">
+                <span>⚡ <b>自動喚醒機制</b>：當您在 FakeGPS Pro 點擊「連線裝置」時，軟體會自動向手機發送 AMFI 指令，將隱藏的「開發者模式」直接呼叫出來！</span>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top: 0;">手機端啟用步驟：</h3>
+                <div class="step-list">
+                    <div class="step-item">
+                        <div class="step-num">1</div>
+                        <div class="step-body">
+                            <h4>打開 iPhone 設定</h4>
+                            <p>進入 iPhone「<b>設定</b>」 >「<b>隱私權與安全性</b>」。</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num">2</div>
+                        <div class="step-body">
+                            <h4>滑到最下方開啟選項</h4>
+                            <p>滑到最底端（封閉模式下方），點進「<b>開發者模式</b>」將開關切換為開啟。</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num">3</div>
+                        <div class="step-body">
+                            <h4>重新開機與確認</h4>
+                            <p>依系統提示點擊「<b>重新開機</b>」。手機重開解鎖後，在彈出的確認視窗點擊「<b>開啟</b>」並輸入手機解鎖密碼即可永久生效。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. 裝置連線與 Wi-Fi 同步 -->
+        <section id="connection">
+            <h2>🔌 4. 裝置連線與 Wi-Fi 無線同步</h2>
+            <p>本軟體支援 <b>USB 傳輸線連線</b> 以及 <b>同網域 Wi-Fi 隔空連線</b> 兩種模式。</p>
+
+            <h3>設定免插線「Wi-Fi 無線同步」：</h3>
+            <div class="card">
+                <div class="step-list">
+                    <div class="step-item">
+                        <div class="step-num">1</div>
+                        <div class="step-body">
+                            <h4>開啟 iTunes 摘要頁面</h4>
+                            <p>插上 USB 線，打開電腦上的 iTunes，點擊左上方的小 iPhone 圖示進入裝置摘要頁。</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num">2</div>
+                        <div class="step-body">
+                            <h4>勾選 Wi-Fi 同步選項</h4>
+                            <p>在右側畫面往下滾動滑輪到最底部的「<b>選項</b>」區塊，勾選 ☑️「<b>透過 Wi-Fi 與此 iPhone 同步</b>」。</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num">3</div>
+                        <div class="step-body">
+                            <h4>套用儲存</h4>
+                            <p>點擊右下角「<b>套用</b>」。之後只要電腦與手機連接同一個 Wi-Fi 路由器，拔掉傳輸線也能無線遙控定位！</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. 四大核心操作模式 -->
+        <section id="features">
+            <h2>🕹️ 5. 四大核心操作模式</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>模式名稱</th>
+                        <th>圖示</th>
+                        <th>適用場景</th>
+                        <th>操作方式</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><b>瞬移模式</b></td>
+                        <td>🎯</td>
+                        <td>跨區抓寶、打遠方道館、參加團體戰</td>
+                        <td>在地圖點擊目標或輸入座標，點擊「⚡ 瞬移到此處」。</td>
+                    </tr>
+                    <tr>
+                        <td><b>搖桿巡航</b></td>
+                        <td>🕹️</td>
+                        <td>微調走位、原地刷怪、過馬路轉彎</td>
+                        <td>推動右下角 360 度虛擬搖桿，或直接按鍵盤 <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>。</td>
+                    </tr>
+                    <tr>
+                        <td><b>路線規劃</b></td>
+                        <td>📍</td>
+                        <td>自動孵蛋、皮克敏連續種花、巡邏補給站</td>
+                        <td>在地圖上點選多個轉折點，勾選「循環巡航」後點擊「開始移動」。</td>
+                    </tr>
+                    <tr>
+                        <td><b>皮皮純點</b></td>
+                        <td>🍄</td>
+                        <td>皮克敏飾品收集、搶位打蘑菇</td>
+                        <td>依縣市/飾品分類篩選，點擊「⚡ 瞬移」直接飛到純點精準座標。</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>防封冷卻時間計算 (Cooldown Timer)：</h3>
+            <p>進行長距離瞬移時，遊戲伺服器會依據物理位移距離設定安全冷卻限制。FakeGPS Pro 內建即時冷卻計算器：</p>
+            <div class="card" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <div><b>1 km</b>：約冷卻 30 秒</div>
+                <div><b>5 km</b>：約冷卻 2 分鐘</div>
+                <div><b>10 km</b>：約冷卻 6 分鐘</div>
+                <div><b>25 km</b>：約冷卻 11 分鐘</div>
+                <div><b>100 km+</b>：約冷卻 30~45 分鐘</div>
+                <div><b>超長途 (跨國/跨縣市)</b>：建議冷卻滿 <b>120 分鐘</b> (2小時)</div>
+            </div>
+        </section>
+
+        <!-- 6. 皮皮純點與蘑菇戰情室 -->
+        <section id="pipi">
+            <h2>🍄 6. 皮皮純點與蘑菇戰情室</h2>
+            <p>本軟體已深度整合 <a href="https://pipimushroom.com/" target="_blank" style="color: #60a5fa;">Pipi Mushroom</a> 台灣皮克敏純點資料庫與即時蘑菇戰力統計。</p>
+
+            <div class="card">
+                <h3>功能特色：</h3>
+                <ul style="margin-left: 1.25rem; color: #cbd5e1; display: flex; flex-direction: column; gap: 0.5rem;">
+                    <li><b>全台灣 22 縣市完整收錄</b>：包含本島 19 縣市與澎湖、金門、連江（馬祖）離島全區。</li>
+                    <li><b>368 個鄉鎮市區二級聯動</b>：選擇縣市後自動載入該縣市所有行政區，篩選精準不漏球。</li>
+                    <li><b>36 種全飾品分類</b>：完整涵蓋官方所有飾品（電影院、美術館、動物園、溫泉、神社、寺廟、拉麵、咖哩、壽司、美妝、漢堡、冰淇淋等）。</li>
+                    <li><b>即時連動官方篩選</b>：點擊「🌐 在 Pipi 網站查看完整名單」，以當前選定的縣市與分類直接跳轉官網獲取最新投稿名單。</li>
+                    <li><b>座標秒貼秒傳</b>：在 Pipi Mushroom 複製任何經緯度（如 <code>25.0339, 121.5644</code>），貼在搜尋框點擊「查詢/傳送」立即就位。</li>
+                    <li><b>即時戰情報告</b>：點擊「🌐 打開全台未滿5人蘑菇」，直接查看目前全台灣正在打、尚有名額的蘑菇清單。</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 7. 皮克敏種花完全攻略 -->
+        <section id="flower-rules">
+            <h2>🌸 7. 皮克敏種花完全攻略</h2>
+            <p>《Pikmin Bloom》的種花機制是基於 <b>GPS 連續位移</b> 與 <b>S2 Cell 地圖網格</b>，不需要實體步數即可全自動刷花。</p>
+
+            <div class="alert alert-success">
+                <span>✅ <b>高效種花最佳黃金參數</b>：速度設定 <code>10.0 ~ 14.0 km/h</code>（單車速度）、隨行隊伍放滿 <b>40 隻皮克敏</b>！</span>
+            </div>
+
+            <h3>⚠️ 三大避坑規則：</h3>
+            <div class="step-list">
+                <div class="step-item">
+                    <div class="step-num">1</div>
+                    <div class="step-body">
+                        <h4>S2 網格 5 分鐘冷卻限制</h4>
+                        <p>在地圖某個格子種下花後，該格子會進入 5 分鐘冷卻期。<b>5分鐘內重複走回頭路只會浪費花瓣而種不出新花</b>。請規劃長直線或 1~3 公里超大環形路線！</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">2</div>
+                    <div class="step-body">
+                        <h4>嚴格移動速度上限</h4>
+                        <p>移動速度若超過 <b>15~20 km/h</b>（如開車速度），遊戲會觸發防超速判定，花瓣會消耗但地上不會產出花朵。</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">3</div>
+                    <div class="step-body">
+                        <h4>隨行隊伍人數影響種花面積</h4>
+                        <p>隊伍帶滿 40 隻皮克敏時，每分鐘花瓣消耗率固定為 6 片，但<b>刷花面積與半徑最大</b>，性價比最高。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. 步數困難與硬體解析 -->
+        <section id="steps-vs-gps">
+            <h2>🚶 8. 步數困難與硬體解析</h2>
+            <p>為什麼模擬了 GPS 移動，但 Apple 健康裡的「步數」或「孵苗步數」沒有增加？</p>
+
+            <div class="card">
+                <h3>兩套完全獨立的 iOS 感測系統：</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>系統模組</th>
+                            <th>涉及硬體/架構</th>
+                            <th>負責項目</th>
+                            <th>FakeGPS 覆蓋能力</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><b>定位系統</b> (<code>CoreLocation</code>)</td>
+                            <td>GPS 晶片、基地台、Wi-Fi 定位</td>
+                            <td>經緯度座標、海拔、移動時速、方向</td>
+                            <td>✅ <b>完全覆蓋</b>（透過 Apple DVT 通道）</td>
+                        </tr>
+                        <tr>
+                            <td><b>運動計步</b> (<code>CoreMotion</code>)</td>
+                            <td>Apple M 系列協同處理器、三軸加速度計、陀螺儀</td>
+                            <td>身體實體震動、步伐頻率、HealthKit 步數</td>
+                            <td>❌ <b>無法透過 USB 模擬</b>（Apple 封閉介面）</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="alert alert-info">
+                <span>💡 <b>結論與解法</b>：
+                <br>• <b>採集純點 / 搶蘑菇 / 種花</b>：純靠 GPS 移動即可達成（FakeGPS Pro 完全搞定）。
+                <br>• <b>刷 Apple 健康步數 / 孵苗成長</b>：建議搭配幾十元的 <b>「USB 物理搖步器」</b> 產生真實物理震動。</span>
+            </div>
+        </section>
+
+        <!-- 9. 常見問題與故障排除 -->
+        <section id="faq">
+            <h2>❓ 9. 常見問題與故障排除 (FAQ)</h2>
+
+            <div class="card">
+                <h3>Q1: 序號輸入後顯示「已被其他電腦啟用」？</h3>
+                <p>序號為單次綁定一機一碼使用。若該序號曾在別台電腦啟用過，則無法在第二台電腦重複輸入。若需更換電腦，請聯繫管理員重置或發放新序號。</p>
+
+                <h3>Q2: 玩完後如何恢復手機真實的 GPS？</h3>
+                <p>在 FakeGPS Pro 右上角點擊紅色的「<b>還原真實定位</b>」，或直接將手機重新開機，定位會立刻恢復真實 GPS。</p>
+
+                <h3>Q3: 搜尋不到裝置或連線按鈕沒反應？</h3>
+                <p>1. 確認 iPhone 螢幕已解鎖，並在手機上點選了「信任這部電腦」。<br>
+                2. 點擊頂部選單旁的「<b>🔄 重新整理</b>」按鈕重新掃描 USB 裝置。<br>
+                3. 確認電腦已安裝 Apple iTunes（以便取得 Apple Mobile Device Support 底層驅動）。</p>
+            </div>
+        </section>
+
+        <footer style="margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.8rem; text-align: center;">
+            FakeGPS Pro Technical Guide & Manual • Built for Advanced iOS Location Simulation
+        </footer>
+    </main>
+
+    <script>
+        // 側邊欄滾動監聽平滑捲動
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

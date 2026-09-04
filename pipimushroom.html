@@ -1,0 +1,91 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1BR3PSKVDX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-1BR3PSKVDX');
+    </script>
+    <title>
+	純點列表｜Pipi Mushroom
+</title>    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5987023872559107" crossorigin="anonymous"></script>
+    <link rel="icon" href="/favicon.ico?v=20260817-static-all1" sizes="any" />
+    <link rel="icon" href="/favicon.svg?v=20260817-static-all1" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260817-static-all1" />
+    <meta name="description" content="用列表查詢皮克敏飾品純點資料，依縣市、行政區與分類快速篩選。" />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://pipimushroom.com/acclist.aspx" />
+    <meta property="og:locale" content="zh_TW" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Pipi Mushroom" />
+    <meta property="og:title" content="純點列表｜Pipi Mushroom" />
+    <meta property="og:description" content="用列表查詢皮克敏飾品純點資料，依縣市、行政區與分類快速篩選。" />
+    <meta property="og:url" content="https://pipimushroom.com/acclist.aspx" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="純點列表｜Pipi Mushroom" />
+    <meta name="twitter:description" content="用列表查詢皮克敏飾品純點資料，依縣市、行政區與分類快速篩選。" /><link rel="stylesheet" href="Content/vendor/fontawesome/all.min.css?v=20260821-legal-pages1" /><link rel="stylesheet" href="Content/app-pages.css?v=20260821-legal-layout2" /></head>
+<body class="list-body">
+    <form method="post" action="./acclist.aspx" id="form1">
+<div class="aspNetHidden">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="wUWPP16S6+UHP1jeFP352xH4TWgPc1laswMTou340TYDcBYtng8KoJG5WEez6jzFM98l9enwrlz8YEZOGmHGiHg24+UMwsFPrM+aPVNL1l8=" />
+</div>
+
+<div class="aspNetHidden">
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="D1AF5E40" />
+</div>
+        <div class="data-shell list-page">
+            <header class="data-header">
+                <div>
+                    <h1><i class="fa-solid fa-list-check"></i> 純點列表</h1>
+                    <p id="listStatus">準備載入...</p>
+                </div>
+                <button class="page-menu-button" type="button" aria-label="開啟選單" aria-expanded="false"><i class="fa-solid fa-bars"></i></button>
+                <nav class="page-nav">
+                    <a href="index.aspx"><i class="fa-regular fa-newspaper"></i>最新消息</a>
+                    <a href="mfmap.aspx"><i class="fa-solid fa-cloud"></i> 蘑菇地圖</a>
+                    <a href="accmap.aspx"><i class="fa-solid fa-map-location-dot"></i> 純點</a>
+                    <a class="active" href="acclist.aspx"><i class="fa-solid fa-list-check"></i> 列表</a>
+                    <a href="accstats.aspx"><i class="fa-solid fa-chart-column"></i> 統計</a>
+                    <a href="acchelp.aspx"><i class="fa-solid fa-circle-question"></i> 說明</a>
+                    <link rel="stylesheet" href="Content/notifications.css?v=20260817-static-all1" /><a class="notification-nav-link" data-notification-nav data-refresh-seconds="60" href="notifications.aspx"><i class="fa-solid fa-bell"></i> <span class="notification-nav-text">&#x901A;&#x77E5;</span><span class="notification-badge" aria-label="3 &#x5247;&#x672A;&#x8B80;&#x901A;&#x77E5;">3</span></a><script src="Scripts/dist/site-notification-nav.min.js?v=20260831-vip1-reserve1" charset="utf-8"></script>
+                    
+                    <a class="auth-link" href="login.aspx?ReturnUrl=%2facclist.aspx"><i class="fa-solid fa-right-to-bracket"></i> 登入</a>
+                    
+                </nav>
+            </header>
+
+            <main class="list-content">
+            <section class="filter-panel">
+                <label><span><i class="fa-solid fa-city"></i> <span id="cityFilterLabel">縣市</span></span><select id="citySelect"><option value="">請選縣市</option></select></label>
+                <label><span><i class="fa-solid fa-location-crosshairs"></i> 行政區</span><select id="areaSelect"><option value="">請先選縣市</option></select></label>
+                <label><span><i class="fa-solid fa-icons"></i> 分類</span><select id="categorySelect"><option value="">全部分類</option></select></label>
+                <label><span><i class="fa-solid fa-magnifying-glass"></i> 搜尋</span><input id="searchInput" type="search" placeholder="搜尋分類或類別代碼" /></label>
+                <button id="searchButton" type="button"><i class="fa-solid fa-arrow-right"></i> 查詢</button>
+            </section>
+
+            <section class="summary-row">
+                <div><span id="totalCount">0</span><small>個純點</small></div>
+                <div><span id="pageInfo">第 1 頁</span><small>每頁 24 筆</small></div>
+                <div class="pager">
+                    <button id="prevPage" type="button" title="上一頁"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button id="nextPage" type="button" title="下一頁"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            </section>
+
+            <section id="listGrid" class="list-grid" aria-live="polite"></section>
+            </main>
+        </div>
+    </form>
+    <script src="Scripts/dist/api-security.min.js?v=20260831-vip1-reserve1" charset="utf-8"></script>
+    <script src="Scripts/dist/acclist.min.js?v=20260831-vip1-reserve1" charset="utf-8"></script>
+    <script src="Scripts/dist/page-menu.min.js?v=20260831-vip1-reserve1" charset="utf-8"></script>
+    <script src="Scripts/dist/site-disclaimer.min.js?v=20260831-vip1-reserve1" charset="utf-8"></script>
+</body>
+</html>
+

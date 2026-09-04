@@ -1,0 +1,55 @@
+name: Build macOS FakeGPS Pro
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch: # 支援在 GitHub 網頁後台一鍵手動點擊「Run workflow」觸發打包
+
+jobs:
+  build-mac:
+    name: Build on ${{ matrix.os-name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-14
+            os-name: Apple-Silicon-ARM64 (M1/M2/M3/M4)
+            artifact-suffix: AppleSilicon
+          - os: macos-13
+            os-name: Intel-Mac-x86_64
+            artifact-suffix: Intel
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller -r requirements.txt
+
+      - name: Run Build Script
+        run: |
+          chmod +x build_mac.sh
+          ./build_mac.sh
+
+      - name: Prepare Artifact
+        run: |
+          if [ -f "dist/FakeGPS_Pro.dmg" ]; then
+            mv dist/FakeGPS_Pro.dmg "dist/FakeGPS_Pro-${{ matrix.artifact-suffix }}.dmg"
+          fi
+
+      - name: Upload Mac App and DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: FakeGPS_Pro-${{ matrix.artifact-suffix }}
+          path: |
+            dist/FakeGPS_Pro-*.dmg
+            dist/FakeGPS_Pro.app
+          retention-days: 14
