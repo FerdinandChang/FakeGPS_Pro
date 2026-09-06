@@ -26,6 +26,7 @@ python3 -m PyInstaller \
   --windowed \
   --name "FakeGPS_Pro" \
   --add-data "gui:gui" \
+  --add-data "core/fetch_mushrooms.js:core" \
   --add-data "manual.html:." \
   --add-data "lzss.py:." \
   --add-data "lzfse.py:." \
@@ -49,11 +50,24 @@ python3 -m PyInstaller \
 cp manual.html dist/FakeGPS_Pro.app/Contents/Resources/ 2>/dev/null || true
 cp manual.html dist/ 2>/dev/null || true
 
-# 嘗試製作 DMG 映像檔
+# 製作包含 Applications 捷徑的專業 DMG 安裝檔
 if command -v hdiutil &> /dev/null; then
     echo "正在製作 FakeGPS_Pro.dmg 安裝檔..."
-    hdiutil create -volname "FakeGPS_Pro" -srcfolder "dist/FakeGPS_Pro.app" -ov -format UDZO "dist/FakeGPS_Pro.dmg"
-    echo "DMG 安裝映像檔已生成: dist/FakeGPS_Pro.dmg"
+    sleep 3
+    mkdir -p dist/dmg_root
+    cp -R dist/FakeGPS_Pro.app dist/dmg_root/
+    ln -s /Applications dist/dmg_root/Applications 2>/dev/null || true
+
+    for attempt in 1 2 3 4; do
+        echo "正在執行 hdiutil create (嘗試第 $attempt 次)..."
+        if hdiutil create -volname "FakeGPS_Pro" -srcfolder "dist/dmg_root" -ov -format UDZO "dist/FakeGPS_Pro.dmg"; then
+            echo "DMG 安裝映像檔已順利生成: dist/FakeGPS_Pro.dmg"
+            break
+        fi
+        echo "hdiutil 遇到系統佔用，等待 4 秒後重試..."
+        sleep 4
+    done
+    rm -rf dist/dmg_root
 fi
 
 echo ""
