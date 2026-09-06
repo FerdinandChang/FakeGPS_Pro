@@ -40,6 +40,8 @@ from typing import List, Dict, Any
 
 from core.ios_service import IOSLocationService
 from core.license_manager import LicenseManager
+from core.mushroom_service import MushroomRadarService
+from core.updater import AutoUpdater
 from core.mover import (
     MovementEngine,
     haversine_distance,
@@ -56,6 +58,8 @@ class JsApi:
         self.ios_service = ios_service
         self.mover = mover
         self.license_mgr = license_mgr
+        self.mushroom_radar = MushroomRadarService()
+        self.updater = AutoUpdater()
         self.current_speed_kmh = 3.6
 
     def check_license(self) -> Dict[str, Any]:
@@ -203,6 +207,31 @@ class JsApi:
         except Exception as e:
             logger.error(f"開啟瀏覽器失敗: {e}")
             return False
+
+    def query_giant_mushrooms(self, city: str = "", area: str = "", engagement: str = "under_five") -> Dict[str, Any]:
+        """查詢巨大蘑菇即時資料（自動過濾新發現項目）"""
+        return self.mushroom_radar.check_new_mushrooms(city, area, engagement)
+
+    def notify_desktop(self, title: str, message: str) -> bool:
+        """觸發系統原生桌面通知"""
+        self.mushroom_radar.notify_desktop(title, message)
+        return True
+
+    def check_for_updates(self) -> Dict[str, Any]:
+        """檢查線上 GitHub Releases 是否有新版本"""
+        return self.updater.check_for_updates()
+
+    def start_auto_update(self, download_url: str) -> Dict[str, Any]:
+        """開始下載並套用線上自動更新"""
+        def _on_progress(pct: int, msg: str):
+            if self.window_holder and self.window_holder[0]:
+                try:
+                    clean_msg = msg.replace('"', '\\"').replace("'", "\\'")
+                    self.window_holder[0].evaluate_js(f"window.onUpdateProgress({pct}, '{clean_msg}');")
+                except Exception:
+                    pass
+
+        return self.updater.start_download_and_install(download_url, on_progress=_on_progress)
 
 
 def main():

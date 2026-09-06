@@ -30,6 +30,8 @@
                 <span id="status-text">未連線</span>
             </div>
             <button id="btn-reset-gps" class="btn btn-danger" title="停止模擬並還原手機真實 GPS">還原真實定位</button>
+            <button id="btn-open-radar" class="btn btn-radar" title="打開巨大蘑菇即時雷達監控">🍄 巨大菇雷達 <span id="nav-radar-badge" class="radar-badge" style="display:none;">0</span></button>
+            <button id="btn-check-update" class="btn btn-secondary" title="檢查線上 GitHub 最新版本">🔄 檢查更新</button>
             <button onclick="openManual()" class="btn btn-secondary" title="開啟完整使用手冊與技術指南">📖 說明手冊</button>
         </div>
     </header>
@@ -224,6 +226,108 @@
                     <span>💡 單次輸入後即與此電腦綁定，日後啟動自動解鎖。</span>
                 </div>
             </div>
+        <!-- 巨大蘑菇即時雷達滑出式側邊欄 -->
+        <div id="mushroom-radar-panel" class="radar-drawer">
+            <div class="radar-header">
+                <div class="radar-title-group">
+                    <span class="radar-icon">🍄</span>
+                    <div>
+                        <h3>巨大蘑菇即時雷達</h3>
+                        <div class="radar-subtitle">自動追蹤未滿 5 人巨大菇・一鍵秒飛開打</div>
+                    </div>
+                </div>
+                <div class="radar-header-actions">
+                    <button id="radar-btn-refresh" class="btn btn-sm btn-secondary" title="立即手動查詢最新資料">🔄 刷新</button>
+                    <button id="btn-close-radar" class="btn-close-drawer" title="關閉雷達面板">✕</button>
+                </div>
+            </div>
+
+            <!-- 雷達設定與篩選工具列 -->
+            <div class="radar-controls">
+                <div class="radar-filter-row">
+                    <select id="radar-filter-city" class="radar-select">
+                        <option value="">全台灣 (不限縣市)</option>
+                    </select>
+                    <select id="radar-filter-area" class="radar-select" disabled>
+                        <option value="">全區</option>
+                    </select>
+                    <select id="radar-filter-engagement" class="radar-select">
+                        <option value="under_five" selected>未滿 5 人 (可參戰)</option>
+                        <option value="all">全部狀態 (含滿員)</option>
+                        <option value="no_power">0 人 (尚未有人打)</option>
+                    </select>
+                </div>
+
+                <div class="radar-toggle-row">
+                    <label class="radar-toggle-label" title="定時背景自動查詢">
+                        <span>自動更新:</span>
+                        <select id="radar-interval-select" class="radar-select-sm">
+                            <option value="30" selected>每 30 秒</option>
+                            <option value="60">每 60 秒</option>
+                            <option value="120">每 2 分鐘</option>
+                            <option value="0">手動</option>
+                        </select>
+                    </label>
+                    <label class="radar-checkbox-label">
+                        <input type="checkbox" id="radar-sound-toggle" checked />
+                        <span>🔔 音效</span>
+                    </label>
+                    <label class="radar-checkbox-label">
+                        <input type="checkbox" id="radar-notify-toggle" checked />
+                        <span>🖥️ 桌面通知</span>
+                    </label>
+                </div>
+                
+                <div class="radar-status-bar">
+                    <span>符合條件巨大菇: <strong id="radar-count-badge">正在載入...</strong></span>
+                </div>
+            </div>
+
+            <!-- 蘑菇卡片滾動清單 -->
+            <div id="radar-mushroom-list" class="radar-list">
+                <div class="radar-loading">正在連線至皮皮雷達資料庫...</div>
+            </div>
+        </div>
+
+        <!-- 線上自動升級彈窗 -->
+        <div id="update-modal" class="license-overlay" style="display: none;">
+            <div class="update-card">
+                <div class="update-header">
+                    <div class="update-icon">🎉</div>
+                    <div style="flex: 1;">
+                        <h2 style="margin: 0; font-size: 1.2rem; color: #f8fafc;">發現 FakeGPS Pro 新版本！</h2>
+                        <div class="update-version-diff">
+                            <span class="ver-tag cur-ver">目前: <span id="update-cur-ver">v1.0.0</span></span>
+                            <span class="ver-arrow">➔</span>
+                            <span class="ver-tag new-ver">最新: <span id="update-new-ver">v1.1.0</span></span>
+                            <span id="update-file-size" class="ver-size"></span>
+                        </div>
+                    </div>
+                    <button id="btn-close-update" class="btn-close-drawer" title="關閉視窗">✕</button>
+                </div>
+
+                <div class="update-body">
+                    <div class="update-notes-title">📝 更新內容說明：</div>
+                    <div id="update-changelog" class="update-changelog-box">
+                        正在載入更新日誌...
+                    </div>
+
+                    <!-- 下載進度條 -->
+                    <div id="update-progress-box" class="update-progress-box" style="display: none;">
+                        <div class="update-progress-label">
+                            <span id="update-progress-text">正在下載更新檔...</span>
+                        </div>
+                        <div class="update-progress-bg">
+                            <div id="update-progress-bar" class="update-progress-fill" style="width: 5%;"></div>
+                        </div>
+                    </div>
+
+                    <div id="update-action-btns" class="update-actions">
+                        <button id="btn-update-later" class="btn btn-secondary">稍後提醒</button>
+                        <button id="btn-start-upgrade" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981, #059669);">🚀 立即一鍵升級並重啟</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -232,5 +336,7 @@
     <script src="js/map.js"></script>
     <script src="js/joystick.js"></script>
     <script src="js/pipi.js"></script>
+    <script src="js/mushroom_radar.js"></script>
+    <script src="js/updater.js"></script>
 </body>
 </html>

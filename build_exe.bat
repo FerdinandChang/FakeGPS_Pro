@@ -9,6 +9,7 @@ echo.
 
 python -m PyInstaller --noconsole --name "FakeGPS_Pro" ^
   --add-data "gui;gui" ^
+  --add-data "core/fetch_mushrooms.js;core" ^
   --add-data "manual.html;." ^
   --add-data "lzss.py;." ^
   --add-data "lzfse.py;." ^
@@ -29,6 +30,10 @@ python -m PyInstaller --noconsole --name "FakeGPS_Pro" ^
   --collect-all webview ^
   --noconfirm ^
   main.py
+
+echo 正在複製必要依賴檔案...
+copy /y wintun.dll dist\FakeGPS_Pro\ >nul
+copy /y manual.html dist\FakeGPS_Pro\ >nul
 
 echo.
 echo =======================================================
