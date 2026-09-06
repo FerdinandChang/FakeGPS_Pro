@@ -63,6 +63,25 @@ header {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    flex: 1;
+    margin-left: 1.5rem;
+}
+
+.nav-group {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.nav-divider {
+    width: 1px;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.15);
+    margin: 0 0.35rem;
+}
+
+.nav-spacer {
+    flex: 1;
 }
 
 .select-device {
@@ -562,6 +581,12 @@ input[type="range"] {
     filter: brightness(1.08);
 }
 
+.btn-radar.active {
+    background: linear-gradient(135deg, #f43f5e, #7c3aed);
+    box-shadow: 0 0 16px rgba(244, 63, 94, 0.6);
+    outline: 2px solid rgba(255, 255, 255, 0.8);
+}
+
 .radar-badge {
     background: #ef4444;
     color: #ffffff;
@@ -576,15 +601,15 @@ input[type="range"] {
 .radar-drawer {
     position: fixed;
     top: 56px;
-    right: -420px;
-    width: 390px;
+    right: -450px;
+    width: 420px;
     height: calc(100vh - 56px);
-    background: rgba(15, 23, 42, 0.95);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-left: 1px solid rgba(139, 92, 246, 0.3);
-    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.6);
-    z-index: 1500;
+    background: rgba(15, 23, 42, 0.96);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-left: 1px solid rgba(139, 92, 246, 0.4);
+    box-shadow: -12px 0 35px rgba(0, 0, 0, 0.75);
+    z-index: 2500;
     display: flex;
     flex-direction: column;
     transition: right 0.32s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1016,5 +1041,89 @@ input[type="range"] {
     justify-content: flex-end;
     gap: 0.6rem;
     margin-top: 0.4rem;
+}
+
+/* ================= 地圖巨大蘑菇標記與 Popup ================= */
+.mushroom-map-marker {
+    background: transparent;
+    border: none;
+}
+
+.mushroom-marker-bubble {
+    background: linear-gradient(135deg, #ec4899, #8b5cf6);
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(236, 72, 153, 0.6);
+    border: 2px solid #ffffff;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    animation: radar-marker-pulse 2s infinite ease-in-out;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.15s ease;
+}
+
+.mushroom-marker-bubble:hover {
+    transform: scale(1.15);
+    background: linear-gradient(135deg, #f43f5e, #7c3aed);
+}
+
+.mushroom-marker-bubble.badge-zero {
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.6);
+}
+
+@keyframes radar-marker-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.7); }
+    70% { box-shadow: 0 0 0 8px rgba(236, 72, 153, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
+}
+
+.radar-popup-card {
+    min-width: 200px;
+    color: #0f172a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.radar-popup-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 4px;
+}
+
+.radar-popup-row {
+    font-size: 12px;
+    color: #475569;
+    margin: 3px 0;
+}
+
+.radar-popup-btn {
+    width: 100%;
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #ec4899, #8b5cf6);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: filter 0.15s ease;
+}
+
+.radar-popup-btn:hover {
+    filter: brightness(1.1);
 }
 

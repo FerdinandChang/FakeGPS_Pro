@@ -19,20 +19,36 @@
         </div>
 
         <div class="device-bar">
-            <select id="device-select" class="select-device">
-                <option value="">正在偵測裝置...</option>
-            </select>
-            <button id="btn-refresh-devices" class="btn btn-secondary" title="重新掃描 USB 裝置">🔄 重新整理</button>
-            <button id="btn-connect" class="btn btn-primary">連線裝置</button>
-            <button id="btn-dev-mode" class="btn btn-secondary" style="background: rgba(255, 170, 0, 0.12); border-color: rgba(255, 170, 0, 0.4); color: #ffbb33;" title="強制在 iPhone 設定中顯露或啟用開發者模式">🛠️ 喚醒開發者模式</button>
-            <div id="status-badge" class="status-badge">
-                <div class="dot"></div>
-                <span id="status-text">未連線</span>
+            <!-- 裝置連線與狀態控制組 -->
+            <div class="nav-group">
+                <select id="device-select" class="select-device" title="選擇連接的 iOS 設備">
+                    <option value="">正在偵測裝置...</option>
+                </select>
+                <button id="btn-refresh-devices" class="btn btn-secondary" title="重新掃描 USB 裝置">🔄 重新整理</button>
+                <button id="btn-connect" class="btn btn-primary" title="連線至選定的 iOS 設備">連線裝置</button>
+                <div id="status-badge" class="status-badge" title="連線狀態與機型版本">
+                    <div class="dot"></div>
+                    <span id="status-text">未連線</span>
+                </div>
+                <button id="btn-dev-mode" class="btn btn-secondary" style="background: rgba(255, 170, 0, 0.12); border-color: rgba(255, 170, 0, 0.4); color: #ffbb33;" title="強制在 iPhone 設定中顯露或啟用開發者模式">🛠️ 喚醒開發者模式</button>
             </div>
-            <button id="btn-reset-gps" class="btn btn-danger" title="停止模擬並還原手機真實 GPS">還原真實定位</button>
-            <button id="btn-open-radar" class="btn btn-radar" title="打開巨大蘑菇即時雷達監控">🍄 巨大菇雷達 <span id="nav-radar-badge" class="radar-badge" style="display:none;">0</span></button>
-            <button id="btn-check-update" class="btn btn-secondary" title="檢查線上 GitHub 最新版本">🔄 檢查更新</button>
-            <button onclick="openManual()" class="btn btn-secondary" title="開啟完整使用手冊與技術指南">📖 說明手冊</button>
+
+            <div class="nav-divider"></div>
+
+            <!-- 定位控制與巨大菇即時雷達 -->
+            <div class="nav-group">
+                <button id="btn-reset-gps" class="btn btn-danger" title="停止模擬並還原手機真實 GPS">📍 還原真實定位</button>
+                <button id="btn-open-radar" class="btn btn-radar" title="打開巨大蘑菇即時雷達監控清單">🍄 巨大菇雷達 <span id="nav-radar-badge" class="radar-badge" style="display:none;">0</span></button>
+            </div>
+
+            <!-- 彈性撐開，系統功能靠右對齊 -->
+            <div class="nav-spacer"></div>
+
+            <!-- 右側系統工具組 -->
+            <div class="nav-group">
+                <button id="btn-check-update" class="btn btn-secondary" title="檢查線上 GitHub 最新版本">🔄 檢查更新</button>
+                <button id="btn-manual" onclick="openManual()" class="btn btn-secondary" title="開啟完整使用手冊與技術指南">📖 說明手冊</button>
+            </div>
         </div>
     </header>
 
@@ -47,6 +63,7 @@
                 <button class="tab" data-mode="joystick">🕹️ 搖桿</button>
                 <button class="tab" data-mode="route">📍 路線</button>
                 <button class="tab" id="tab-pipi" data-mode="pipi">🍄 皮皮純點</button>
+                <button class="tab" id="tab-radar" data-mode="radar" title="查看巨大蘑菇即時雷達清單">🍄 巨大菇</button>
             </div>
 
             <div class="panel-content">
@@ -181,6 +198,30 @@
                     <!-- 純點列表容器 -->
                     <div id="pipi-spot-list" style="max-height: calc(100vh - 540px); overflow-y: auto;"></div>
                 </div>
+
+                <!-- 模式 5: 巨大蘑菇即時雷達面板 -->
+                <div id="panel-radar" class="mode-panel" style="display: none;">
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                        <b>🍄 巨大蘑菇即時雷達</b>
+                    </div>
+
+                    <div class="coord-card" style="margin-bottom: 0.6rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(139, 92, 246, 0.12)); border: 1px solid rgba(236, 72, 153, 0.35);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                            <span style="font-size: 0.82rem; font-weight: 700; color: #f43f5e;">⚡ 即時可參戰名單</span>
+                            <span id="side-radar-badge" class="radar-count-tag badge-open" style="font-size: 0.72rem; padding: 2px 6px;">正在載入...</span>
+                        </div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                            自動追蹤未滿 5 人場次，點擊下方按鈕或右上角「🍄 巨大菇雷達」開啟完整抽屜。
+                        </div>
+                        <button id="btn-side-open-drawer" class="btn btn-radar" style="width: 100%; justify-content: center;">
+                            📋 展開完整雷達清單抽屜
+                        </button>
+                    </div>
+
+                    <div id="side-radar-list" style="max-height: calc(100vh - 480px); overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <!-- 快速清單卡片 -->
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -226,6 +267,8 @@
                     <span>💡 單次輸入後即與此電腦綁定，日後啟動自動解鎖。</span>
                 </div>
             </div>
+        </div>
+
         <!-- 巨大蘑菇即時雷達滑出式側邊欄 -->
         <div id="mushroom-radar-panel" class="radar-drawer">
             <div class="radar-header">
