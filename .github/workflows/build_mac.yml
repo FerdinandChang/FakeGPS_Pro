@@ -3,7 +3,11 @@ name: Build macOS FakeGPS Pro
 on:
   push:
     branches: [ main, master ]
+    tags: [ 'v*' ]
   workflow_dispatch: # 支援在 GitHub 網頁後台一鍵手動點擊「Run workflow」觸發打包
+
+permissions:
+  contents: write
 
 jobs:
   build-mac:
@@ -54,3 +58,12 @@ jobs:
             dist/FakeGPS_Pro-*.dmg
             dist/FakeGPS_Pro.app
           retention-days: 14
+
+      - name: Upload DMG to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            dist/FakeGPS_Pro-*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
