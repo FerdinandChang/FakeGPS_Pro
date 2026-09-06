@@ -310,6 +310,8 @@
             <li><a href="#flower-rules" class="nav-link">🌸 7. 皮克敏種花完全攻略</a></li>
             <li><a href="#steps-vs-gps" class="nav-link">🚶 8. 步數困難與硬體解析</a></li>
             <li><a href="#faq" class="nav-link">❓ 9. 常見問題與故障排除</a></li>
+            <li><a href="#radar" class="nav-link" style="color: #ec4899; font-weight: 600;">🍄 10. 巨大蘑菇即時雷達 (v1.1.0)</a></li>
+            <li><a href="#auto-updater" class="nav-link" style="color: #10b981; font-weight: 600;">🔄 11. 線上自動更新與升級</a></li>
         </ul>
     </nav>
 
@@ -618,6 +620,94 @@
                 <p>1. 確認 iPhone 螢幕已解鎖，並在手機上點選了「信任這部電腦」。<br>
                 2. 點擊頂部選單旁的「<b>🔄 重新整理</b>」按鈕重新掃描 USB 裝置。<br>
                 3. 確認電腦已安裝 Apple iTunes（以便取得 Apple Mobile Device Support 底層驅動）。</p>
+            </div>
+        </section>
+
+        
+        <!-- 10. 巨大蘑菇即時雷達 -->
+        <section id="radar">
+            <h2>🍄 10. 巨大蘑菇即時雷達 (v1.1.0 重大更新)</h2>
+            <p>為解決皮克敏玩家在全台搜尋未滿員巨大蘑菇的痛點，FakeGPS Pro v1.1.0 隆重推出<b>全自動即時巨大蘑菇監控雷達</b>！</p>
+
+            <div class="alert alert-success" style="background: rgba(236, 72, 153, 0.12); border-color: rgba(236, 72, 153, 0.4); color: #f43f5e;">
+                <span>🍄 <b>四大核心亮點</b>：全台即時掃描 • 智慧過濾未滿 5 人 • 清脆雙音階警報音 • 🚀 一鍵秒飛現場開打！</span>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top: 0;">功能操作詳解：</h3>
+                <div class="step-list">
+                    <div class="step-item">
+                        <div class="step-num" style="background: linear-gradient(135deg, #ec4899, #8b5cf6);">1</div>
+                        <div class="step-body">
+                            <h4>頂部一鍵展開即時清單抽屜</h4>
+                            <p>點擊頂部導航列的「<b>🍄 巨大菇雷達 (數字)</b>」按鈕（或左側面板的「<b>🍄 巨大菇</b>」分頁），右側會滑出寬敞流暢的即時抽屜面板，按鈕上的數字代表目前全台符合條件的巨大菇數量。</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num" style="background: linear-gradient(135deg, #ec4899, #8b5cf6);">2</div>
+                        <div class="step-body">
+                            <h4>智慧參戰篩選與縣市區域過濾</h4>
+                            <p>
+                                • <b>參戰篩選</b>：預設為「<b>未滿 5 人 (可參戰)</b>」，自動排除已經 5 人滿員的場次；亦可切換為「<b>0 人 (尚未有人打)</b>」搶頭香空場。<br>
+                                • <b>區域篩選</b>：支援依照全台各縣市與鄉鎮市區進行精準鎖定。
+                            </p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num" style="background: linear-gradient(135deg, #ec4899, #8b5cf6);">3</div>
+                        <div class="step-body">
+                            <h4>🚀 卡片一鍵秒飛開打</h4>
+                            <p>每張卡片清楚標註地標、行政區、目前挑戰人數、怪物戰力與剩餘血量進度條。點擊「<b>🚀 一鍵秒飛</b>」，手機 GPS 瞬間傳送至該蘑菇座標，按鈕即時反饋 <code>✅ 已瞬移！</code>。</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num" style="background: linear-gradient(135deg, #ec4899, #8b5cf6);">4</div>
+                        <div class="step-body">
+                            <h4>🗺️ 地圖即時發光蘑菇氣泡 (Markers)</h4>
+                            <p>雷達掃描到的巨大菇會同步標記在地圖上（呈現粉紫發光氣泡 <code>🍄 0人空場</code> 或 <code>🍄 2/5人</code>）。在地圖上直接點擊氣泡即可彈出卡片並秒飛！</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num" style="background: linear-gradient(135deg, #ec4899, #8b5cf6);">5</div>
+                        <div class="step-body">
+                            <h4>🖥️ 獨立背景監控小工具 (<code>run_radar_tray.bat</code>)</h4>
+                            <p>若平時不需開啟大地圖，可直接雙擊資料夾內的 <code>run_radar_tray.bat</code>，它會在 Windows 系統匣常駐，背景每 30 秒自動偵測，發現目標第一時間彈出系統通知與提示音！</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 11. 線上自動更新系統 -->
+        <section id="auto-updater">
+            <h2>🔄 11. 線上自動升級系統 (Auto-Updater)</h2>
+            <p>FakeGPS Pro v1.1.0 起全面支援 <b>GitHub Releases 線上自動更新</b>，告別手動重複下載與檔案覆蓋的繁瑣步驟！</p>
+
+            <div class="card">
+                <h3 style="margin-top: 0;">自動更新運作特色：</h3>
+                <div class="step-list">
+                    <div class="step-item">
+                        <div class="step-num" style="background: linear-gradient(135deg, #10b981, #059669);">1</div>
+                        <div class="step-body">
+                            <h4>開機靜默比對與主動提醒</h4>
+                            <p>每次啟動軟體 3 秒後，系統在背景向 GitHub 查詢是否有新發行版；亦可隨時點擊頂部右上角的「<b>🔄 檢查更新</b>」手動確認。</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num" style="background: linear-gradient(135deg, #10b981, #059669);">2</div>
+                        <div class="step-body">
+                            <h4>一鍵無痛升級與守護程序 1 秒置換</h4>
+                            <p>發現新版本時會彈出包含完整版本日誌（Changelog）的更新視窗。點擊「<b>🚀 立即一鍵升級並重啟</b>」，下載完成後獨立守護程序會在 1 秒內自動完成覆蓋並重新啟動最新版本！</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num" style="background: linear-gradient(135deg, #10b981, #059669);">3</div>
+                        <div class="step-body">
+                            <h4>🔑 100% 永久保留已啟用之授權序號</h4>
+                            <p>升級置換只更新程式本體與資源庫，完全不變更 <code>license.dat</code>。升級後<b>免重新輸入序號</b>，直接無縫解鎖進入使用！</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
