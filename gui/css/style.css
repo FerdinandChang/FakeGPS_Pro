@@ -40,8 +40,9 @@ header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 1.25rem;
+    padding: 0 1rem;
     z-index: 1000;
+    overflow: hidden;
 }
 
 .brand {
@@ -51,37 +52,53 @@ header {
     font-size: 1.15rem;
     font-weight: 700;
     color: #60a5fa;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .brand svg {
     width: 24px;
     height: 24px;
     fill: currentColor;
+    flex-shrink: 0;
 }
 
 .device-bar {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.6rem;
     flex: 1;
-    margin-left: 1.5rem;
+    margin-left: 1rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    padding-bottom: 2px;
+}
+
+.device-bar::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
 }
 
 .nav-group {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .nav-divider {
     width: 1px;
     height: 22px;
     background: rgba(255, 255, 255, 0.15);
-    margin: 0 0.35rem;
+    margin: 0 0.25rem;
+    flex-shrink: 0;
 }
 
 .nav-spacer {
     flex: 1;
+    min-width: 0.5rem;
 }
 
 .select-device {
@@ -89,23 +106,44 @@ header {
     color: var(--text-primary);
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    padding: 0.4rem 0.8rem;
-    font-size: 0.9rem;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.85rem;
     outline: none;
     cursor: pointer;
+    flex-shrink: 0;
+    white-space: nowrap;
+    max-width: 180px;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
 .btn {
-    padding: 0.45rem 0.9rem;
+    padding: 0.42rem 0.8rem;
     border-radius: 6px;
     font-size: 0.85rem;
     font-weight: 600;
     border: none;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    justify-content: center;
+    gap: 0.35rem;
     transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.btn-icon {
+    font-size: 0.95rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-text {
+    white-space: nowrap;
 }
 
 .btn-primary {
@@ -134,14 +172,16 @@ header {
 }
 
 .status-badge {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.85rem;
-    padding: 0.35rem 0.75rem;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    padding: 0.32rem 0.65rem;
     border-radius: 9999px;
     background-color: rgba(107, 114, 128, 0.2);
     color: var(--text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .status-badge.connected {
@@ -154,6 +194,45 @@ header {
     height: 8px;
     border-radius: 50%;
     background-color: currentColor;
+    flex-shrink: 0;
+}
+
+/* 頂部 RWD 響應式優化：螢幕收窄時優雅折疊次要文字，永不產生直排折行 */
+@media (max-width: 1260px) {
+    #btn-dev-mode .btn-text {
+        display: none;
+    }
+    #btn-check-update .btn-text {
+        display: none;
+    }
+}
+
+@media (max-width: 1100px) {
+    .brand span {
+        display: none;
+    }
+    #btn-refresh-devices .btn-text {
+        display: none;
+    }
+    #btn-manual .btn-text {
+        display: none;
+    }
+    .select-device {
+        max-width: 140px;
+    }
+}
+
+@media (max-width: 950px) {
+    #status-text {
+        display: none;
+    }
+    #btn-reset-gps .btn-text {
+        display: none;
+    }
+    .device-bar {
+        gap: 0.4rem;
+        margin-left: 0.5rem;
+    }
 }
 
 /* 主內容區 */
@@ -617,6 +696,13 @@ input[type="range"] {
 
 .radar-drawer.active {
     right: 0;
+}
+
+@media (max-width: 480px) {
+    .radar-drawer {
+        width: 100vw;
+        right: -100vw;
+    }
 }
 
 .radar-header {

@@ -1,40 +1,127 @@
-// FakeGPS Pro - 巨大蘑菇即時雷達前端控制模組
+// FakeGPS Pro - 蘑菇即時戰情雷達前端控制模組
 (function() {
     'use strict';
 
     let radarTimer = null;
-    let autoRefreshSec = 30; // 預設 30 秒
+    let autoRefreshSec = 15; // 預設 15 秒快速監控
     let isSoundEnabled = true;
     let isNotifyEnabled = true;
+    let isAutoTeleportEnabled = false;
     let currentMushrooms = [];
     let isQuerying = false;
     let radarMarkersLayer = null;
 
-    // Web Audio API 清脆雙音階提示音 (D5 -> A5)
-    function playChime() {
-        if (!isSoundEnabled) return;
+    // 自動秒飛防封鎖與冷卻機制
+    let lastAutoTeleportTime = 0;
+    const AUTO_TELEPORT_COOLDOWN_MS = 60000; // 60 秒安全防封保護冷卻
+    const autoTeleportedIds = new Set();
+
+    // 蘑菇等級名稱映射
+    const LEVEL_NAMES = {
+        'giant': '巨大菇',
+        'large': '大菇',
+        'normal': '普通菇',
+        'small': '小菇'
+    };
+
+    // 蘑菇屬性名稱映射
+    const TYPE_NAMES = {
+        'RockCrystalMushroom': '水晶菇 💎',
+        'FireMushroom': '火菇 🔥',
+        'WaterMushroom': '水菇 💧',
+        'ElectricMushroom': '電菇 ⚡',
+        'PoisonMushroom': '毒菇 🟣',
+        'Event': '活動菇 🎃'
+    };
+
+    // 網頁內視覺浮動 Toast 提示 (100% 可視保證，免疫 Windows 勿擾模式)
+    function showInAppToast(title, msg) {
+        let container = document.getElementById('in-app-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'in-app-toast-container';
+            container.style.cssText = 'position:fixed; top:70px; right:20px; z-index:99999; display:flex; flex-direction:column; gap:10px; pointer-events:none;';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.style.cssText = 'pointer-events:auto; background:linear-gradient(135deg, rgba(15,23,42,0.96), rgba(30,41,59,0.96)); border:1px solid #c084fc; box-shadow:0 10px 30px rgba(0,0,0,0.7), 0 0 16px rgba(192,132,252,0.5); border-radius:10px; padding:12px 18px; min-width:280px; max-width:380px; color:#f8fafc; font-size:13px; transform:translateX(100%); transition:all 0.35s cubic-bezier(0.16,1,0.3,1); opacity:0;';
+        toast.innerHTML = `
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; font-weight:700; color:#e879f9;">
+                <span style="font-size:18px;">🍄</span>
+                <span>${title}</span>
+            </div>
+            <div style="font-size:12px; color:#cbd5e1; line-height:1.4;">${msg}</div>
+        `;
+
+        container.appendChild(toast);
+        requestAnimationFrame(() => {
+            toast.style.transform = 'translateX(0)';
+            toast.style.opacity = '1';
+        });
+
+        setTimeout(() => {
+            toast.style.transform = 'translateX(120%)';
+            toast.style.opacity = '0';
+            setTimeout(() => {
+                toast.remove();
+            }, 350);
+        }, 4500);
+    }
+
+    // 播放提示音 (雙保險機制：前端 Web Audio + 後端原生系統音效)
+    function playChime(forceSystem = false) {
+        if (!isSoundEnabled && !forceSystem) return;
+
+        // 1. 前端 Web Audio API (D5 -> A5 雙音階清脆提示音)
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-            const ctx = new AudioContext();
-            const now = ctx.currentTime;
-            
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(587.33, now); // D5
-            osc.frequency.setValueAtTime(880.00, now + 0.12); // A5
-            
-            gain.gain.setValueAtTime(0.25, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-            
-            osc.start(now);
-            osc.stop(now + 0.6);
+            if (AudioContext) {
+                const ctx = new AudioContext();
+                if (ctx.state === 'suspended') {
+                    ctx.resume();
+                }
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, now); // D5
+                osc.frequency.setValueAtTime(880.00, now + 0.12); // A5
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                osc.start(now);
+                osc.stop(now + 0.6);
+            }
         } catch (e) {
-            console.warn('播放提示音失敗:', e);
+            console.warn('Web Audio 播放失敗:', e);
+        }
+
+        // 2. 後端 Python 原生系統警示音 (Windows winsound / macOS afplay 必響保險)
+        if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.play_system_alert === 'function') {
+            try {
+                window.pywebview.api.play_system_alert();
+            } catch (e) {
+                console.warn('後端原生提示音播放失敗:', e);
+            }
+        }
+    }
+
+    // 發送系統通知 (網頁視覺 Toast + Windows 10/11 系統橫幅雙推播)
+    function sendDesktopNotification(title, msg) {
+        if (!isNotifyEnabled) return;
+        
+        // 視覺浮動 Toast (100% 免疫勿擾模式)
+        showInAppToast(title, msg);
+
+        // 系統原生 Toast 橫幅
+        if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.notify_desktop === 'function') {
+            try {
+                window.pywebview.api.notify_desktop(title, msg);
+            } catch (e) {
+                console.warn('發送桌面通知失敗:', e);
+            }
         }
     }
 
@@ -85,6 +172,11 @@
         return Math.max(0, Math.min(100, (remaining / total * 100))).toFixed(1);
     }
 
+    // 取得蘑菇顯示等級名稱
+    function getLevelDisplayName(level) {
+        return LEVEL_NAMES[level] || (level ? level : '蘑菇');
+    }
+
     // 地圖標記繪製
     function updateMapMarkers(items) {
         if (!window.map || typeof L === 'undefined') return;
@@ -106,8 +198,9 @@
             const badgeClass = isZero ? 'badge-zero' : '';
             const countText = isZero ? '0人空場' : `${m.challengerCount}/5人`;
             const hpPct = formatHpPercent(m.remainingHp, m.totalHp);
+            const levelLabel = getLevelDisplayName(m.level);
 
-            const iconHtml = `<div class="mushroom-marker-bubble ${badgeClass}" title="${m.place || '巨大蘑菇'}">🍄 ${countText}</div>`;
+            const iconHtml = `<div class="mushroom-marker-bubble ${badgeClass}" title="${m.place || '蘑菇'}">🍄 ${countText}</div>`;
             const customIcon = L.divIcon({
                 className: 'mushroom-map-marker',
                 html: iconHtml,
@@ -120,7 +213,7 @@
             const popupHtml = `
                 <div class="radar-popup-card">
                     <div class="radar-popup-title">📍 ${m.place || '未知地標'}</div>
-                    <div class="radar-popup-row">🍄 類型：${m.typeName || '巨大蘑菇'}</div>
+                    <div class="radar-popup-row">🍄 類型：${m.typeName || levelLabel}</div>
                     <div class="radar-popup-row">🏙️ 地區：${m.city || ''} ${m.area || ''}</div>
                     <div class="radar-popup-row">⚔️ 參戰：<strong>${countText}</strong></div>
                     <div class="radar-popup-row">❤️ 剩餘血量：${hpPct}% (${formatNum(m.remainingHp)})</div>
@@ -168,6 +261,46 @@
         }
     }
 
+    // 執行「方案 A：發現目標自動秒飛 (含安全冷卻保護)」
+    function handleAutoTeleport(newItems) {
+        if (!isAutoTeleportEnabled || !newItems || newItems.length === 0) return;
+
+        const now = Date.now();
+        const elapsed = now - lastAutoTeleportTime;
+
+        // 若距離上次自動秒飛小於安全冷卻時間 (60秒)，暫緩秒飛以保護帳號安全防封
+        if (elapsed < AUTO_TELEPORT_COOLDOWN_MS) {
+            const remainSec = Math.ceil((AUTO_TELEPORT_COOLDOWN_MS - elapsed) / 1000);
+            console.log(`[自動秒飛防封閥] 冷卻中 (剩餘 ${remainSec} 秒)，略過本次自動瞬移`);
+            return;
+        }
+
+        // 尋找尚未自動瞬移過的第一個合格新蘑菇
+        const target = newItems.find(m => {
+            const key = m.id || `${m.lat},${m.lng}`;
+            return !autoTeleportedIds.has(key);
+        });
+
+        if (!target) return;
+
+        const key = target.id || `${target.lat},${target.lng}`;
+        autoTeleportedIds.add(key);
+        lastAutoTeleportTime = now;
+
+        const lat = parseFloat(target.lat);
+        const lng = parseFloat(target.lng);
+        const placeName = target.place || `${target.city} ${target.area}`;
+
+        console.log(`⚡ [方案 A 自動秒飛] 命中目標: ${placeName} (${lat}, ${lng})，自動執行瞬移！`);
+        teleportToMushroom(lat, lng, placeName);
+
+        // 發送專屬桌面通知提示
+        sendDesktopNotification(
+            `⚡ 自動秒飛就位成功！`,
+            `已為您瞬移至 [${target.city} ${target.area}] ${target.typeName || '蘑菇'} (${placeName})，進入 60s 安全防封保護！`
+        );
+    }
+
     // 刷新蘑菇雷達資料
     async function refreshRadarData() {
         if (isQuerying || !window.pywebview || !window.pywebview.api) return;
@@ -185,9 +318,11 @@
         const city = document.getElementById('radar-filter-city')?.value || '';
         const area = document.getElementById('radar-filter-area')?.value || '';
         const engagement = document.getElementById('radar-filter-engagement')?.value || 'under_five';
+        const level = document.getElementById('radar-filter-level')?.value || 'giant';
+        const mushroomType = document.getElementById('radar-filter-type')?.value || 'all';
 
         try {
-            const res = await window.pywebview.api.query_giant_mushrooms(city, area, engagement);
+            const res = await window.pywebview.api.query_giant_mushrooms(city, area, engagement, level, mushroomType);
             if (res && res.success) {
                 currentMushrooms = res.items || [];
                 const newItems = res.new_items || [];
@@ -201,15 +336,19 @@
                     navBadge.style.display = currentMushrooms.length > 0 ? 'inline-block' : 'none';
                 }
 
-                // 若有新目標，播放音效與系統通知
+                // 若有新目標，播放雙保險音效與系統通知
                 if (newItems.length > 0) {
                     playChime();
                     if (isNotifyEnabled) {
                         const first = newItems[0];
-                        const title = `🍄 發現 ${newItems.length} 顆未滿 5 人巨大蘑菇！`;
-                        const msg = `[${first.city} ${first.area}] ${first.typeName} (${first.place}) 目前 ${first.challengerCount}/5 人`;
-                        window.pywebview.api.notify_desktop(title, msg);
+                        const levelName = getLevelDisplayName(first.level || level);
+                        const title = `🍄 發現 ${newItems.length} 顆符合條件 ${levelName}！`;
+                        const msg = `[${first.city} ${first.area}] ${first.typeName || levelName} (${first.place}) 目前 ${first.challengerCount}/5 人`;
+                        sendDesktopNotification(title, msg);
                     }
+
+                    // 執行自動秒飛
+                    handleAutoTeleport(newItems);
                 }
 
                 // 渲染右側抽屜清單
@@ -243,8 +382,8 @@
             listContainer.innerHTML = `
                 <div class="radar-empty-msg">
                     <div style="font-size: 36px; margin-bottom: 8px;">🍄</div>
-                    <strong>目前沒有符合條件的巨大蘑菇</strong>
-                    <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">雷達將在背景持續監控，一有新目標立刻通知！</div>
+                    <strong>目前沒有符合條件的蘑菇</strong>
+                    <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">雷達在背景持續全自動監控，發現目標將即時提醒！</div>
                 </div>`;
             return;
         }
@@ -253,11 +392,12 @@
             const hpPct = formatHpPercent(m.remainingHp, m.totalHp);
             const countClass = m.challengerCount === 0 ? 'badge-zero' : 'badge-open';
             const countText = m.challengerCount === 0 ? '0 / 5 (空場速來!)' : `${m.challengerCount} / 5 人`;
+            const levelName = getLevelDisplayName(m.level);
             
             return `
                 <div class="radar-card">
                     <div class="radar-card-header">
-                        <span class="radar-type-tag">${m.typeName || '巨大蘑菇'}</span>
+                        <span class="radar-type-tag">${m.typeName || levelName}</span>
                         <span class="radar-count-tag ${countClass}">${countText}</span>
                     </div>
                     <div class="radar-card-title" title="${m.place || '未知地標'}">
@@ -316,7 +456,7 @@
         if (!items || items.length === 0) {
             sideListContainer.innerHTML = `
                 <div style="text-align: center; padding: 1.5rem 0.5rem; color: var(--text-muted); font-size: 0.8rem;">
-                    目前無符合條件巨大菇，持續監控中...
+                    目前無符合條件蘑菇，持續監控中...
                 </div>`;
             return;
         }
@@ -325,6 +465,7 @@
             const countClass = m.challengerCount === 0 ? 'badge-zero' : 'badge-open';
             const countText = m.challengerCount === 0 ? '0/5 (空場)' : `${m.challengerCount}/5 人`;
             const hpPct = formatHpPercent(m.remainingHp, m.totalHp);
+            const levelName = getLevelDisplayName(m.level);
 
             return `
                 <div class="coord-card" style="padding: 0.6rem; border-color: rgba(236, 72, 153, 0.25);">
@@ -335,7 +476,7 @@
                         <span class="radar-count-tag ${countClass}" style="font-size: 0.68rem; padding: 1px 5px;">${countText}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.35rem;">
-                        <span>${m.city} ${m.area}</span>
+                        <span>${m.city} ${m.area} (${m.typeName || levelName})</span>
                         <span>血量: ${hpPct}%</span>
                     </div>
                     <button class="btn btn-primary btn-sm side-btn-teleport" data-lat="${m.lat}" data-lng="${m.lng}" data-name="${encodeURIComponent(m.place || '')}" style="width: 100%; justify-content: center; font-size: 0.75rem; padding: 0.25rem;">
@@ -380,6 +521,10 @@
         const soundToggle = document.getElementById('radar-sound-toggle');
         const notifyToggle = document.getElementById('radar-notify-toggle');
         const engFilter = document.getElementById('radar-filter-engagement');
+        const levelFilter = document.getElementById('radar-filter-level');
+        const typeFilter = document.getElementById('radar-filter-type');
+        const autoTeleportToggle = document.getElementById('radar-auto-teleport');
+        const testAlertBtn = document.getElementById('radar-btn-test-alert');
 
         function toggleRadarDrawer(forceState) {
             if (!panel) return;
@@ -414,6 +559,7 @@
 
         if (tabRadar) {
             tabRadar.addEventListener('click', () => {
+                // 開啟抽屜
                 toggleRadarDrawer(true);
             });
         }
@@ -432,6 +578,7 @@
         }
 
         if (intervalSel) {
+            autoRefreshSec = parseInt(intervalSel.value, 10) || 15;
             intervalSel.addEventListener('change', () => {
                 autoRefreshSec = parseInt(intervalSel.value, 10);
                 setupPolling();
@@ -457,6 +604,45 @@
             });
         }
 
+        if (levelFilter) {
+            levelFilter.addEventListener('change', () => {
+                refreshRadarData();
+            });
+        }
+
+        if (typeFilter) {
+            typeFilter.addEventListener('change', () => {
+                refreshRadarData();
+            });
+        }
+
+        if (autoTeleportToggle) {
+            autoTeleportToggle.addEventListener('change', () => {
+                isAutoTeleportEnabled = autoTeleportToggle.checked;
+                if (isAutoTeleportEnabled) {
+                    sendDesktopNotification(
+                        '⚡ 自動秒飛已啟用',
+                        '當雷達掃描到符合條件的新蘑菇時，系統將全自動順飛至該處！（具備 60 秒防封保護鎖）'
+                    );
+                }
+            });
+        }
+
+        if (testAlertBtn) {
+            testAlertBtn.addEventListener('click', () => {
+                // 觸發音效雙保險與系統 Toast
+                playChime(true);
+                sendDesktopNotification(
+                    '🍄 蘑菇戰情提醒測試',
+                    '通知與警示音效 100% 正常運作中！發現目標將零延遲提醒您。'
+                );
+                testAlertBtn.textContent = '✅ 已發送測試';
+                setTimeout(() => {
+                    testAlertBtn.textContent = '🧪 測試通知';
+                }, 2000);
+            });
+        }
+
         // 首次啟動輪詢
         setupPolling();
         
@@ -475,6 +661,7 @@
     window.MushroomRadar = {
         refresh: refreshRadarData,
         playChime: playChime,
+        sendDesktopNotification: sendDesktopNotification,
         teleport: function(lat, lng, encodedName) {
             const name = decodeURIComponent(encodedName || '');
             teleportToMushroom(lat, lng, name);

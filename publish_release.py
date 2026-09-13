@@ -11,33 +11,47 @@ import subprocess
 from datetime import datetime
 
 REPO = "FerdinandChang/FakeGPS_Pro"
-VERSION = "v1.1.0"
-RELEASE_TITLE = "FakeGPS Pro v1.1.0 - 巨大蘑菇即時雷達與線上自動升級"
+VERSION = "v1.2.0"
+RELEASE_TITLE = "FakeGPS Pro v1.2.0 - 🍄 蘑菇戰情中心大改版與全尺寸自訂追蹤"
 
-RELEASE_BODY = """# FakeGPS Pro v1.1.0 - 巨大蘑菇即時雷達與線上自動升級大改版
+RELEASE_BODY = """# FakeGPS Pro v1.2.0 - 🍄 蘑菇戰情中心全功能升級與小螢幕 RWD 修復
 
-## 🍄 新增功能與重點特色
+本版本帶來全方位的蘑菇戰情強化、全尺寸追蹤、一鍵秒飛開打與小螢幕自適應排版優化：
 
-### 1. 皮皮蘑菇「巨大蘑菇即時雷達」
-* **自動背景追蹤**：支援每 30 秒 / 60 秒自動掃描全台 Pipi Mushroom 即時資料庫。
-* **智慧參戰篩選**：預設精準過濾「未滿 5 人 (可參戰)」或「0 人空場」的巨大蘑菇。
-* **即時警報提醒**：新出現巨大菇時，立即發出雙音階清脆提示音，並於 Windows / macOS 桌面右下角彈出系統橫幅通知。
-* **🚀 一鍵秒飛開打**：雷達卡片標註地標、座標與目前人數，點擊「一鍵秒飛」手機 GPS 瞬間傳送至現場！
+## 🌟 重點更新內容
 
-### 2. Windows & macOS 雙平台線上無痛自動更新
-* **靜默檢查**：開機背景自動比對最新發行版本。
-* **一鍵升級重啟**：下載完成後由守護程序於 1 秒內自動完成檔案置換並重啟新版。
-* **永久保留授權**：升級過程完全不影響現有電腦已啟用的序號憑證，免重新驗證！
+### 1. 🍄 蘑菇全尺寸等級 (Level) 與屬性 (Type) 自訂追蹤
+* **全尺寸切換**：可自訂篩選 **巨大菇 (預設)**、**大菇**、**普通菇**、**小菇** 或 **全部尺寸**，不再受限於單一等級！
+* **特定屬性篩選**：支援水晶菇 💎、火菇 🔥、水菇 💧、電菇 ⚡、毒菇 🟣、節慶活動菇 🎃 精準追蹤。
+* **刷新頻率升級**：新增 **5 秒 (極速搶位)**、**10 秒 (飛速)** 與 **15 秒 (推薦)** 靈敏更新選項。
 
-### 3. 獨立桌面監控小工具 (`run_radar_tray.bat`)
-* 支援在未開啟主視窗時於電腦背景獨立運行，發現目標即時報警。
+### 2. ⚡ 發現目標自動秒飛 (Auto-Teleport) 與安全防封保護
+* 勾選「發現目標自動秒飛」後，雷達掃描到符合條件的新蘑菇自動瞬移就位！
+* 內建 **60 秒安全防封冷卻閥** 與去重快取，兼顧快速搶位開打與遊戲帳號安全。
+
+### 3. 📱 徹底根治小螢幕 RWD 頂部按鈕被擠壓文字垂直折行
+* 頂部按鈕加入防折行與隱藏式平滑橫向捲動保護。
+* 螢幕寬度收窄時（<1260px / <1100px / <950px）漸進折疊次要文字，文字絕不垂直排版，版面美觀俐落。
+
+### 4. ⚔️ 統整全軟體命名與戰情面板整合
+* 純點與戰情分工整併：戰情卡片完整遷移至「🍄 蘑菇戰情」面板與抽屜。
+* 左側 Tab 4 統一名稱為「📍 皮皮純點」，Tab 5 統一名稱為「🍄 蘑菇戰情」。
+
+### 5. 🔔 100% 零漏接雙保險通知與除錯模式關閉
+* 修復 Windows 10/11 原生 Toast 橫幅推播，並加入網頁視覺發光 Toast 氣泡（免疫勿擾模式）。
+* 前端 Web Audio 雙音階提示音 + 後端原生系統警示音雙保險發聲。
+* 關閉啟動時預設彈出的 Edge DevTools 視窗。
+
+### 6. 🍎 macOS 雙架構全面支援與手冊擴充
+* 完整支援 Apple Silicon (M1/M2/M3/M4) 與 Intel 晶片 Mac。
+* 說明手冊新增 Mac 用戶專屬指南（免裝 iTunes、Gatekeeper 一鍵解鎖與晶片選擇）。
 
 ---
 
 ## 📦 下載與安裝說明
 
-* **Windows 使用者**：下載 `FakeGPS_Pro_Windows_v1.1.0.zip`，解壓縮後執行 `FakeGPS_Pro.exe` 即可（舊版使用者直接解壓覆蓋原資料夾升級）。
-* **Mac 使用者**：下載對應晶片的 DMG 檔案（`AppleSilicon` 適用 M1/M2/M3/M4；`Intel` 適用舊款 Mac），雙擊開啟即可使用。
+* **Windows 使用者**：下載 `FakeGPS_Pro_Windows_v1.2.0.zip`，解壓縮後執行 `FakeGPS_Pro.exe` 即可（亦可直接在軟體內點「🔄 檢查更新」一鍵線上自動升級！）。
+* **Mac 使用者**：下載對應晶片的 DMG 檔案（`FakeGPS_Pro-AppleSilicon.dmg` 適用 M1/M2/M3/M4；`FakeGPS_Pro-Intel.dmg` 適用舊款 Intel Mac），雙擊開啟即可使用。
 """
 
 def get_github_token():
@@ -102,10 +116,10 @@ def main():
         shutil.copy("d:/FakeGPS/mushroom_radar_tray.py", dist_dir)
     
     # 2. 建立 ZIP 包
-    zip_v110 = os.path.join("d:/FakeGPS", "dist", "FakeGPS_Pro_Windows_v1.1.0.zip")
+    zip_ver = os.path.join("d:/FakeGPS", "dist", f"FakeGPS_Pro_Windows_{VERSION}.zip")
     zip_generic = os.path.join("d:/FakeGPS", "dist", "FakeGPS_Pro.zip")
-    create_windows_zip(dist_dir, zip_v110)
-    shutil.copy(zip_v110, zip_generic)
+    create_windows_zip(dist_dir, zip_ver)
+    shutil.copy(zip_ver, zip_generic)
 
     # 3. 呼叫 GitHub API 建立或取得 Release
     headers = {
@@ -141,17 +155,17 @@ def main():
     # 刪除已存在的同名資產避免衝突
     existing_assets = release_data.get("assets", [])
     for a in existing_assets:
-        if a.get("name") in ("FakeGPS_Pro_Windows_v1.1.0.zip", "FakeGPS_Pro.zip"):
+        if a.get("name") in (f"FakeGPS_Pro_Windows_{VERSION}.zip", "FakeGPS_Pro.zip"):
             print(f"刪除舊資產 {a.get('name')} ...")
             requests.delete(a.get("url"), headers=headers)
 
     # 4. 上傳發布包
-    upload_asset(upload_url, zip_v110, "FakeGPS_Pro_Windows_v1.1.0.zip", token)
+    upload_asset(upload_url, zip_ver, f"FakeGPS_Pro_Windows_{VERSION}.zip", token)
     upload_asset(upload_url, zip_generic, "FakeGPS_Pro.zip", token)
 
     print()
     print("=" * 60)
-    print(" 🎉 v1.1.0 正式發布完成！")
+    print(f" 🎉 {VERSION} 正式發布完成！")
     print(f" 發布網址: {release_data.get('html_url')}")
     print("=" * 60)
 

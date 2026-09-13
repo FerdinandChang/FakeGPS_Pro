@@ -24,21 +24,31 @@
                 <select id="device-select" class="select-device" title="選擇連接的 iOS 設備">
                     <option value="">正在偵測裝置...</option>
                 </select>
-                <button id="btn-refresh-devices" class="btn btn-secondary" title="重新掃描 USB 裝置">🔄 重新整理</button>
-                <button id="btn-connect" class="btn btn-primary" title="連線至選定的 iOS 設備">連線裝置</button>
+                <button id="btn-refresh-devices" class="btn btn-secondary" title="重新掃描 USB 裝置">
+                    <span class="btn-icon">🔄</span><span class="btn-text">重新整理</span>
+                </button>
+                <button id="btn-connect" class="btn btn-primary" title="連線至選定的 iOS 設備">
+                    <span class="btn-icon">🔗</span><span class="btn-text">連線裝置</span>
+                </button>
                 <div id="status-badge" class="status-badge" title="連線狀態與機型版本">
                     <div class="dot"></div>
-                    <span id="status-text">未連線</span>
+                    <span id="status-text" class="btn-text">未連線</span>
                 </div>
-                <button id="btn-dev-mode" class="btn btn-secondary" style="background: rgba(255, 170, 0, 0.12); border-color: rgba(255, 170, 0, 0.4); color: #ffbb33;" title="強制在 iPhone 設定中顯露或啟用開發者模式">🛠️ 喚醒開發者模式</button>
+                <button id="btn-dev-mode" class="btn btn-secondary" style="background: rgba(255, 170, 0, 0.12); border-color: rgba(255, 170, 0, 0.4); color: #ffbb33;" title="強制在 iPhone 設定中顯露或啟用開發者模式">
+                    <span class="btn-icon">🛠️</span><span class="btn-text">喚醒開發者模式</span>
+                </button>
             </div>
 
             <div class="nav-divider"></div>
 
-            <!-- 定位控制與巨大菇即時雷達 -->
+            <!-- 定位控制與蘑菇戰情雷達 -->
             <div class="nav-group">
-                <button id="btn-reset-gps" class="btn btn-danger" title="停止模擬並還原手機真實 GPS">📍 還原真實定位</button>
-                <button id="btn-open-radar" class="btn btn-radar" title="打開巨大蘑菇即時雷達監控清單">🍄 巨大菇雷達 <span id="nav-radar-badge" class="radar-badge" style="display:none;">0</span></button>
+                <button id="btn-reset-gps" class="btn btn-danger" title="停止模擬並還原手機真實 GPS">
+                    <span class="btn-icon">📍</span><span class="btn-text">還原真實定位</span>
+                </button>
+                <button id="btn-open-radar" class="btn btn-radar" title="打開蘑菇即時戰情雷達監控清單">
+                    <span class="btn-icon">🍄</span><span class="btn-text">蘑菇戰情</span> <span id="nav-radar-badge" class="radar-badge" style="display:none;">0</span>
+                </button>
             </div>
 
             <!-- 彈性撐開，系統功能靠右對齊 -->
@@ -46,8 +56,12 @@
 
             <!-- 右側系統工具組 -->
             <div class="nav-group">
-                <button id="btn-check-update" class="btn btn-secondary" title="檢查線上 GitHub 最新版本">🔄 檢查更新</button>
-                <button id="btn-manual" onclick="openManual()" class="btn btn-secondary" title="開啟完整使用手冊與技術指南">📖 說明手冊</button>
+                <button id="btn-check-update" class="btn btn-secondary" title="檢查線上 GitHub 最新版本">
+                    <span class="btn-icon">🔄</span><span class="btn-text">檢查更新</span>
+                </button>
+                <button id="btn-manual" onclick="openManual()" class="btn btn-secondary" title="開啟完整使用手冊與技術指南">
+                    <span class="btn-icon">📖</span><span class="btn-text">說明手冊</span>
+                </button>
             </div>
         </div>
     </header>
@@ -62,8 +76,8 @@
                 <button class="tab active" data-mode="teleport">🎯 瞬移</button>
                 <button class="tab" data-mode="joystick">🕹️ 搖桿</button>
                 <button class="tab" data-mode="route">📍 路線</button>
-                <button class="tab" id="tab-pipi" data-mode="pipi">🍄 皮皮純點</button>
-                <button class="tab" id="tab-radar" data-mode="radar" title="查看巨大蘑菇即時雷達清單">🍄 巨大菇</button>
+                <button class="tab" id="tab-pipi" data-mode="pipi">📍 皮皮純點</button>
+                <button class="tab" id="tab-radar" data-mode="radar" title="查看蘑菇即時戰情雷達">🍄 蘑菇戰情</button>
             </div>
 
             <div class="panel-content">
@@ -159,28 +173,13 @@
                     </div>
                 </div>
 
-                <!-- 模式 4: Pipi Mushroom 純點列表與蘑菇戰力面板 -->
+                <!-- 模式 4: Pipi Mushroom 純點列表面板 -->
                 <div id="panel-pipi" class="mode-panel" style="display: none;">
-                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-                        <b>🍄 Pipi Mushroom 純點與蘑菇戰情室</b>
-                    </div>
-
-                    <!-- 蘑菇戰力統計即時快速入口 -->
-                    <div class="coord-card" style="margin-bottom: 0.6rem; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.3);">
-                        <div style="font-size: 0.8rem; font-weight: 600; color: #93c5fd; margin-bottom: 0.3rem;">
-                            ⚔️ 蘑菇戰力統計 (即時戰況)
-                        </div>
-                        <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem;">
-                            全台未滿5人打蘑菇即時名單，一鍵開啟搶位打蘑菇：
-                        </div>
-                        <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
-                            <button onclick="openExternalUrl('https://pipimushroom.com/ppmushroom.aspx?regionCode=TW&engagement=under_five')" class="btn btn-primary btn-sm" style="flex: 1; justify-content: center;">
-                                🌐 打開全台未滿5人蘑菇
-                            </button>
-                            <button onclick="openExternalUrl('https://pipimushroom.com/acclist.aspx')" class="btn btn-secondary btn-sm">
-                                🌐 開啟純點官網
-                            </button>
-                        </div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <b>📍 Pipi Mushroom 純點探索</b>
+                        <button onclick="openExternalUrl('https://pipimushroom.com/acclist.aspx')" style="background: none; border: none; color: #38bdf8; font-size: 0.72rem; cursor: pointer; text-decoration: underline;">
+                            🌐 開啟純點官網
+                        </button>
                     </div>
 
                     <!-- 篩選列 -->
@@ -196,29 +195,48 @@
                         <button id="btn-pipi-search" class="btn btn-primary">查詢/傳送</button>
                     </div>
                     <!-- 純點列表容器 -->
-                    <div id="pipi-spot-list" style="max-height: calc(100vh - 540px); overflow-y: auto;"></div>
+                    <div id="pipi-spot-list" style="max-height: calc(100vh - 460px); overflow-y: auto;"></div>
                 </div>
 
-                <!-- 模式 5: 巨大蘑菇即時雷達面板 -->
+                <!-- 模式 5: 蘑菇即時戰情面板 (整合戰情室卡片) -->
                 <div id="panel-radar" class="mode-panel" style="display: none;">
                     <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-                        <b>🍄 巨大蘑菇即時雷達</b>
+                        <b>🍄 蘑菇即時戰情中心</b>
+                    </div>
+
+                    <!-- 蘑菇戰力統計 (由純點遷移整合至此) -->
+                    <div class="coord-card" style="margin-bottom: 0.6rem; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                            <span style="font-size: 0.8rem; font-weight: 700; color: #93c5fd;">⚔️ 蘑菇戰力統計 (即時戰況)</span>
+                            <span style="font-size: 0.68rem; color: #60a5fa;">未滿 5 人速搶</span>
+                        </div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem;">
+                            全台蘑菇即時名單，一鍵直通外部官網完整情報：
+                        </div>
+                        <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                            <button onclick="openExternalUrl('https://pipimushroom.com/ppmushroom.aspx?regionCode=TW&engagement=under_five')" class="btn btn-primary btn-sm" style="flex: 1; justify-content: center; font-size: 0.75rem;">
+                                🌐 全台未滿5人蘑菇
+                            </button>
+                            <button onclick="openExternalUrl('https://pipimushroom.com/acclist.aspx')" class="btn btn-secondary btn-sm" style="font-size: 0.75rem;">
+                                🌐 皮皮官網
+                            </button>
+                        </div>
                     </div>
 
                     <div class="coord-card" style="margin-bottom: 0.6rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(139, 92, 246, 0.12)); border: 1px solid rgba(236, 72, 153, 0.35);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
-                            <span style="font-size: 0.82rem; font-weight: 700; color: #f43f5e;">⚡ 即時可參戰名單</span>
+                            <span style="font-size: 0.82rem; font-weight: 700; color: #f43f5e;">⚡ 即時可參戰蘑菇</span>
                             <span id="side-radar-badge" class="radar-count-tag badge-open" style="font-size: 0.72rem; padding: 2px 6px;">正在載入...</span>
                         </div>
                         <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-                            自動追蹤未滿 5 人場次，點擊下方按鈕或右上角「🍄 巨大菇雷達」開啟完整抽屜。
+                            自訂追蹤尺寸與屬性，點擊下方展開抽屜設定與自動秒飛。
                         </div>
                         <button id="btn-side-open-drawer" class="btn btn-radar" style="width: 100%; justify-content: center;">
-                            📋 展開完整雷達清單抽屜
+                            📋 展開完整戰情雷達設定
                         </button>
                     </div>
 
-                    <div id="side-radar-list" style="max-height: calc(100vh - 480px); overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div id="side-radar-list" style="max-height: calc(100vh - 540px); overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
                         <!-- 快速清單卡片 -->
                     </div>
                 </div>
@@ -269,14 +287,14 @@
             </div>
         </div>
 
-        <!-- 巨大蘑菇即時雷達滑出式側邊欄 -->
+        <!-- 蘑菇即時戰情雷達滑出式側邊欄 -->
         <div id="mushroom-radar-panel" class="radar-drawer">
             <div class="radar-header">
                 <div class="radar-title-group">
                     <span class="radar-icon">🍄</span>
                     <div>
-                        <h3>巨大蘑菇即時雷達</h3>
-                        <div class="radar-subtitle">自動追蹤未滿 5 人巨大菇・一鍵秒飛開打</div>
+                        <h3>蘑菇即時戰情雷達</h3>
+                        <div class="radar-subtitle">自訂尺寸等級・即時追蹤・一鍵秒飛開打</div>
                     </div>
                 </div>
                 <div class="radar-header-actions">
@@ -287,42 +305,79 @@
 
             <!-- 雷達設定與篩選工具列 -->
             <div class="radar-controls">
+                <!-- 第一行：縣市、區域、尺寸等級 -->
                 <div class="radar-filter-row">
-                    <select id="radar-filter-city" class="radar-select">
+                    <select id="radar-filter-city" class="radar-select" title="篩選縣市">
                         <option value="">全台灣 (不限縣市)</option>
                     </select>
-                    <select id="radar-filter-area" class="radar-select" disabled>
+                    <select id="radar-filter-area" class="radar-select" disabled title="篩選行政區">
                         <option value="">全區</option>
                     </select>
-                    <select id="radar-filter-engagement" class="radar-select">
-                        <option value="under_five" selected>未滿 5 人 (可參戰)</option>
-                        <option value="all">全部狀態 (含滿員)</option>
-                        <option value="no_power">0 人 (尚未有人打)</option>
+                    <select id="radar-filter-level" class="radar-select" title="設定要追蹤的蘑菇尺寸等級">
+                        <option value="giant" selected>🍄 巨大菇 (預設)</option>
+                        <option value="large">🍄 大菇</option>
+                        <option value="normal">🍄 普通菇</option>
+                        <option value="small">🍄 小菇</option>
+                        <option value="all">🌐 全部尺寸</option>
                     </select>
                 </div>
 
+                <!-- 第二行：蘑菇屬性、參戰人數 -->
+                <div class="radar-filter-row">
+                    <select id="radar-filter-type" class="radar-select" title="設定要追蹤的蘑菇屬性/類型">
+                        <option value="all" selected>🎨 全部屬性</option>
+                        <option value="RockCrystalMushroom">💎 水晶菇</option>
+                        <option value="FireMushroom">🔥 火菇</option>
+                        <option value="WaterMushroom">💧 水菇</option>
+                        <option value="ElectricMushroom">⚡ 電菇</option>
+                        <option value="PoisonMushroom">🟣 毒菇</option>
+                        <option value="Event">🎃 節慶活動菇</option>
+                    </select>
+                    <select id="radar-filter-engagement" class="radar-select" title="篩選目前參戰人數">
+                        <option value="under_five" selected>👥 未滿 5 人 (可參戰)</option>
+                        <option value="all">👥 全部狀態 (含滿員)</option>
+                        <option value="no_power">🌱 0 人 (尚未有人打)</option>
+                    </select>
+                </div>
+
+                <!-- 第三行：自動更新頻率、音效、桌面通知、測試按鈕 -->
                 <div class="radar-toggle-row">
                     <label class="radar-toggle-label" title="定時背景自動查詢">
-                        <span>自動更新:</span>
+                        <span>更新:</span>
                         <select id="radar-interval-select" class="radar-select-sm">
-                            <option value="30" selected>每 30 秒</option>
-                            <option value="60">每 60 秒</option>
-                            <option value="120">每 2 分鐘</option>
+                            <option value="5">⚡ 5秒 (極速)</option>
+                            <option value="10">🚀 10秒 (飛速)</option>
+                            <option value="15" selected>⏱️ 15秒 (推薦)</option>
+                            <option value="30">30秒</option>
+                            <option value="60">60秒</option>
                             <option value="0">手動</option>
                         </select>
                     </label>
-                    <label class="radar-checkbox-label">
+                    <label class="radar-checkbox-label" title="播放提示音效 (前端雙音階 + 後端原生提示音雙保險)">
                         <input type="checkbox" id="radar-sound-toggle" checked />
                         <span>🔔 音效</span>
                     </label>
-                    <label class="radar-checkbox-label">
+                    <label class="radar-checkbox-label" title="發送系統原生橫幅通知 (Windows Toast / macOS)">
                         <input type="checkbox" id="radar-notify-toggle" checked />
                         <span>🖥️ 桌面通知</span>
                     </label>
+                    <button id="radar-btn-test-alert" class="btn btn-sm btn-secondary" style="font-size: 0.7rem; padding: 2px 6px;" title="測試原生橫幅通知與雙保險音效">
+                        🧪 測試通知
+                    </button>
+                </div>
+
+                <!-- 第四行：方案 A 發現目標自動秒飛與安全保護 -->
+                <div class="radar-toggle-row" style="background: rgba(16, 185, 129, 0.08); padding: 5px 8px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.25);">
+                    <label class="radar-checkbox-label" style="font-weight: 600; color: #34d399;" title="當雷達掃描到符合條件的新蘑菇時，自動瞬移至該座標">
+                        <input type="checkbox" id="radar-auto-teleport" />
+                        <span>⚡ 發現目標自動秒飛</span>
+                    </label>
+                    <span style="font-size: 0.68rem; color: #94a3b8;" title="避免極短時間連續秒飛導致遊戲防作弊警告">🛡️ 60s 安全冷卻防封閥</span>
                 </div>
                 
                 <div class="radar-status-bar">
-                    <span>符合條件巨大菇: <strong id="radar-count-badge">正在載入...</strong></span>
+                    <span>符合條件蘑菇: <strong id="radar-count-badge">正在載入...</strong></span>
+                    <button onclick="openExternalUrl('https://pipimushroom.com/ppmushroom.aspx?regionCode=TW&engagement=under_five')" style="background:none; border:none; color:#38bdf8; font-size:0.72rem; cursor:pointer; text-decoration:underline;">🌐 開啟戰況網頁</button>
                 </div>
             </div>
 

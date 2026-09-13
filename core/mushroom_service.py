@@ -60,19 +60,35 @@ class MushroomRadarService:
             logger.error(f"查詢蘑菇資料失敗: {e}")
             return {"success": False, "error": str(e)}
 
-    def check_new_mushrooms(self, city: str = "", area: str = "", engagement: str = "under_five") -> Dict[str, Any]:
+    def check_new_mushrooms(self, city: str = "", area: str = "", engagement: str = "under_five", level: str = "巨大", mushroom_type: str = "") -> Dict[str, Any]:
         """
-        檢查是否有新出現的未滿 5 人巨大蘑菇：
-        - 回傳全量清單 items
-        - 回傳新偵測到的目標 new_items（用於觸發音效與通知）
+        檢查是否有新出現的符合條件蘑菇：
+        - 支援自訂尺寸 level ('巨大', '大', '普通', '小', 'all')
+        - 支援自訂屬性 mushroom_type ('RockCrystalMushroom', 'RedFireMushroom', etc.)
+        - 回傳全量清單 items 與新目標 new_items
         """
+        level_map = {
+            "giant": "巨大",
+            "large": "大",
+            "normal": "普通",
+            "small": "小",
+            "all": "",
+            "巨大": "巨大",
+            "大": "大",
+            "普通": "普通",
+            "小": "小",
+            "全部": ""
+        }
+        actual_level = level_map.get(level, level if level not in ("all", "全部") else "")
+        actual_type = "" if mushroom_type in ("all", "全部", "") else mushroom_type
+
         payload = {
             "mode": "list",
             "regionCode": "TW",
             "city": city,
             "area": area,
-            "type": "",
-            "level": "巨大",
+            "type": actual_type,
+            "level": actual_level,
             "engagement": engagement,
             "freshness": "1440",
             "sort": "updated",
@@ -104,26 +120,59 @@ class MushroomRadarService:
         }
 
     @staticmethod
-    def notify_desktop(title: str, message: str):
-        """觸發 Windows / macOS 原生系統通知"""
+    def play_system_alert():
+        """播放系統原生清晰提示音 (Windows / macOS 雙平台原生保證發聲)"""
         try:
             if sys.platform == "win32":
-                clean_title = title.replace('"', '`"').replace("'", "''")
-                clean_msg = message.replace('"', '`"').replace("'", "''")
-                ps_cmd = (
-                    '[void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms"); '
-                    '$objNotifyIcon = New-Object System.Windows.Forms.NotifyIcon; '
-                    '$objNotifyIcon.Icon = [System.Drawing.SystemIcons]::Information; '
-                    '$objNotifyIcon.BalloonTipIcon = "Info"; '
-                    f'$objNotifyIcon.BalloonTipTitle = "{clean_title}"; '
-                    f'$objNotifyIcon.BalloonTipText = "{clean_msg}"; '
-                    '$objNotifyIcon.Visible = $True; '
-                    '$objNotifyIcon.ShowBalloonTip(6000); '
-                    'Start-Sleep -Seconds 1; '
-                    '$objNotifyIcon.Dispose()'
-                )
+                import winsound
+                try:
+                    winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS | winsound.SND_ASYNC)
+                except Exception:
+                    winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
+            elif sys.platform == "darwin":
+                subprocess.Popen(["afplay", "/System/Library/Sounds/Glass.aiff"])
+        except Exception as e:
+            logger.warning(f"播放系統提示音失敗: {e}")
+
+    @staticmethod
+    def notify_desktop(title: str, message: str):
+        """觸發 Windows / macOS 原生系統桌面通知 (100% 穩定推播)"""
+        try:
+            if sys.platform == "win32":
+                import base64
+                import xml.sax.saxutils
+                escaped_title = xml.sax.saxutils.escape(title)
+                escaped_msg = xml.sax.saxutils.escape(message)
+                
+                # 使用合法系統 AUMID 與 UTF-16LE Base64，保證 100% 免疫特殊字元與語法錯誤
+                ps_script = f'''
+$AppId = '{{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}}\\WindowsPowerShell\\v1.0\\powershell.exe'
+try {{
+    [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
+    [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null
+    $xml = New-Object Windows.Data.Xml.Dom.XmlDocument
+    $xmlString = '<toast><visual><binding template="ToastGeneric"><text>{escaped_title}</text><text>{escaped_msg}</text></binding></visual><audio src="ms-winsoundevent:Notification.Default"/></toast>'
+    $xml.LoadXml($xmlString)
+    $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
+    [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($AppId).Show($toast)
+}} catch {{
+    try {{
+        [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
+        $objNotifyIcon = New-Object System.Windows.Forms.NotifyIcon
+        $objNotifyIcon.Icon = [System.Drawing.SystemIcons]::Information
+        $objNotifyIcon.BalloonTipIcon = "Info"
+        $objNotifyIcon.BalloonTipTitle = "{escaped_title}"
+        $objNotifyIcon.BalloonTipText = "{escaped_msg}"
+        $objNotifyIcon.Visible = $True
+        $objNotifyIcon.ShowBalloonTip(5000)
+        Start-Sleep -Seconds 5
+        $objNotifyIcon.Dispose()
+    }} catch {{}}
+}}
+'''
+                encoded = base64.b64encode(ps_script.encode('utf-16le')).decode('ascii')
                 subprocess.Popen(
-                    ["powershell", "-NoProfile", "-Command", ps_cmd],
+                    ["powershell", "-NoProfile", "-EncodedCommand", encoded],
                     creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
                 )
             elif sys.platform == "darwin":

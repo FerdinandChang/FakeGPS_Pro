@@ -208,13 +208,18 @@ class JsApi:
             logger.error(f"開啟瀏覽器失敗: {e}")
             return False
 
-    def query_giant_mushrooms(self, city: str = "", area: str = "", engagement: str = "under_five") -> Dict[str, Any]:
-        """查詢巨大蘑菇即時資料（自動過濾新發現項目）"""
-        return self.mushroom_radar.check_new_mushrooms(city, area, engagement)
+    def query_giant_mushrooms(self, city: str = "", area: str = "", engagement: str = "under_five", level: str = "巨大", mushroom_type: str = "") -> Dict[str, Any]:
+        """查詢蘑菇即時資料（支援尺寸、屬性、參戰過濾）"""
+        return self.mushroom_radar.check_new_mushrooms(city, area, engagement, level, mushroom_type)
 
     def notify_desktop(self, title: str, message: str) -> bool:
         """觸發系統原生桌面通知"""
         self.mushroom_radar.notify_desktop(title, message)
+        return True
+
+    def play_system_alert(self) -> bool:
+        """觸發系統原生提示音 (Windows/macOS)"""
+        self.mushroom_radar.play_system_alert()
         return True
 
     def check_for_updates(self) -> Dict[str, Any]:
@@ -279,7 +284,7 @@ def main():
     window_container.append(window)
 
     try:
-        webview.start(debug=True)
+        webview.start(debug=False)
     finally:
         mover.stop_all()
         ios_service.disconnect()
