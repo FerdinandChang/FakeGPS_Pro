@@ -21,17 +21,31 @@
         'giant': '巨大菇',
         'large': '大菇',
         'normal': '普通菇',
-        'small': '小菇'
+        'small': '小菇',
+        '巨大': '巨大菇',
+        '大': '大菇',
+        '一般': '普通菇',
+        '普通': '普通菇',
+        '小': '小菇'
     };
 
-    // 蘑菇屬性名稱映射
+    // 蘑菇種類名稱映射 (100% 對齊皮皮蘑菇官方代碼)
     const TYPE_NAMES = {
-        'RockCrystalMushroom': '水晶菇 💎',
-        'FireMushroom': '火菇 🔥',
-        'WaterMushroom': '水菇 💧',
-        'ElectricMushroom': '電菇 ⚡',
-        'PoisonMushroom': '毒菇 🟣',
-        'Event': '活動菇 🎃'
+        'elemental': '元素菇 ✨',
+        'LunarNewYearMushroom': '華麗蘑菇 🏮',
+        'RockCrystalMushroom': '水晶蘑菇 💎',
+        'RedFireMushroom': '火蘑菇 🔥',
+        'BlueWaterMushroom': '水蘑菇 💧',
+        'YellowElectricMushroom': '電蘑菇 ⚡',
+        'WhitePoisonousMushroom': '毒蘑菇 🟣',
+        'Placeholder26Mushroom': '冰藍蘑菇 ❄️',
+        'RockMushroom': '灰色蘑菇 🪨',
+        'WhiteMushroom': '白色蘑菇 🤍',
+        'RedMushroom': '紅色蘑菇 🔴',
+        'BlueMushroom': '藍色蘑菇 🔵',
+        'YellowMushroom': '黃色蘑菇 🟡',
+        'WingedMushroom': '粉紅蘑菇 🪽',
+        'PurpleMushroom': '紫色蘑菇 💜'
     };
 
     // 網頁內視覺浮動 Toast 提示 (100% 可視保證，免疫 Windows 勿擾模式)
@@ -225,39 +239,51 @@
         });
     }
 
-    // 統一秒飛定位
+    // 統一秒飛定位 (修復：直接呼叫後端真實瞬移 API pywebview.api.teleport)
     function teleportToMushroom(lat, lng, name, triggerBtn) {
         if (isNaN(lat) || isNaN(lng)) return;
 
-        // 呼叫底層瞬移
-        if (typeof window.teleportTo === 'function') {
-            window.teleportTo(lat, lng);
-        } else if (window.pywebview && window.pywebview.api) {
-            window.pywebview.api.set_location(lat, lng);
-            if (typeof window.updateCurrentLocation === 'function') {
-                window.updateCurrentLocation(lat, lng);
-            }
+        // 1. 同步更新地圖目標紅點標記與經緯度顯示
+        if (typeof window.setTargetLocation === 'function') {
+            window.setTargetLocation(lat, lng);
         }
 
-        // 地圖平移並放大聚焦
+        // 2. 地圖平移並放大聚焦
         if (window.map) {
             window.map.setView([lat, lng], 17);
         }
 
-        // 播放提示音
-        playChime();
-
-        // 視覺回饋
-        if (triggerBtn) {
-            const originText = triggerBtn.textContent;
-            triggerBtn.textContent = '✅ 已瞬移！';
-            triggerBtn.style.backgroundColor = '#10b981';
-            triggerBtn.style.borderColor = '#10b981';
-            setTimeout(() => {
-                triggerBtn.textContent = originText;
-                triggerBtn.style.backgroundColor = '';
-                triggerBtn.style.borderColor = '';
-            }, 1800);
+        // 3. 呼叫後端瞬移 API
+        if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.teleport === 'function') {
+            window.pywebview.api.teleport(lat, lng).then(res => {
+                if (res && res.success) {
+                    if (typeof window.updateCurrentLocation === 'function') {
+                        window.updateCurrentLocation(lat, lng);
+                    }
+                    if (res.cooldown_sec > 0 && typeof window.startCooldownTimer === 'function') {
+                        window.startCooldownTimer(res.cooldown_sec);
+                    }
+                    playChime();
+                    if (triggerBtn) {
+                        const originText = triggerBtn.textContent;
+                        triggerBtn.textContent = '✅ 已瞬移！';
+                        triggerBtn.style.backgroundColor = '#10b981';
+                        triggerBtn.style.borderColor = '#10b981';
+                        setTimeout(() => {
+                            triggerBtn.textContent = originText;
+                            triggerBtn.style.backgroundColor = '';
+                            triggerBtn.style.borderColor = '';
+                        }, 1800);
+                    }
+                } else {
+                    alert("瞬移失敗: " + (res ? res.message : "裝置未連線或發送失敗"));
+                }
+            }).catch(err => {
+                console.error("瞬移執行異常:", err);
+                alert("瞬移執行異常: " + err);
+            });
+        } else {
+            console.warn("未偵測到 pywebview.api.teleport 介面");
         }
     }
 
@@ -320,9 +346,11 @@
         const engagement = document.getElementById('radar-filter-engagement')?.value || 'under_five';
         const level = document.getElementById('radar-filter-level')?.value || 'giant';
         const mushroomType = document.getElementById('radar-filter-type')?.value || 'all';
+        const freshness = document.getElementById('radar-filter-freshness')?.value || '60';
+        const sort = document.getElementById('radar-filter-sort')?.value || 'updated';
 
         try {
-            const res = await window.pywebview.api.query_giant_mushrooms(city, area, engagement, level, mushroomType);
+            const res = await window.pywebview.api.query_giant_mushrooms(city, area, engagement, level, mushroomType, sort, freshness);
             if (res && res.success) {
                 currentMushrooms = res.items || [];
                 const newItems = res.new_items || [];
@@ -523,6 +551,8 @@
         const engFilter = document.getElementById('radar-filter-engagement');
         const levelFilter = document.getElementById('radar-filter-level');
         const typeFilter = document.getElementById('radar-filter-type');
+        const freshnessFilter = document.getElementById('radar-filter-freshness');
+        const sortFilter = document.getElementById('radar-filter-sort');
         const autoTeleportToggle = document.getElementById('radar-auto-teleport');
         const testAlertBtn = document.getElementById('radar-btn-test-alert');
 
@@ -616,6 +646,18 @@
             });
         }
 
+        if (freshnessFilter) {
+            freshnessFilter.addEventListener('change', () => {
+                refreshRadarData();
+            });
+        }
+
+        if (sortFilter) {
+            sortFilter.addEventListener('change', () => {
+                refreshRadarData();
+            });
+        }
+
         if (autoTeleportToggle) {
             autoTeleportToggle.addEventListener('change', () => {
                 isAutoTeleportEnabled = autoTeleportToggle.checked;
@@ -657,6 +699,38 @@
         initCityOptions();
         initEvents();
     });
+
+    // 依據當前選取的條件動態開啟官方網頁
+    window.openMushroomWebWithCurrentFilters = function() {
+        const city = document.getElementById('radar-filter-city')?.value || '';
+        const area = document.getElementById('radar-filter-area')?.value || '';
+        const engagement = document.getElementById('radar-filter-engagement')?.value || 'under_five';
+        const level = document.getElementById('radar-filter-level')?.value || 'giant';
+        const mushroomType = document.getElementById('radar-filter-type')?.value || 'all';
+        const freshness = document.getElementById('radar-filter-freshness')?.value || '60';
+        const sort = document.getElementById('radar-filter-sort')?.value || 'updated';
+
+        const levelMap = { 'giant': '巨大', 'large': '大', 'normal': '一般', 'small': '小', 'all': '' };
+        const actualLevel = levelMap[level] !== undefined ? levelMap[level] : level;
+        const actualType = mushroomType === 'all' ? '' : mushroomType;
+
+        let url = 'https://pipimushroom.com/ppmushroom.aspx?regionCode=TW';
+        if (city) url += `&city=${encodeURIComponent(city)}`;
+        if (area) url += `&area=${encodeURIComponent(area)}`;
+        if (actualType) url += `&type=${encodeURIComponent(actualType)}`;
+        if (actualLevel) url += `&level=${encodeURIComponent(actualLevel)}`;
+        if (engagement && engagement !== 'all') url += `&engagement=${encodeURIComponent(engagement)}`;
+        if (freshness && freshness !== '60') url += `&freshness=${encodeURIComponent(freshness)}`;
+        if (sort && sort !== 'power') url += `&sort=${encodeURIComponent(sort)}`;
+
+        if (typeof window.openExternalUrl === 'function') {
+            window.openExternalUrl(url);
+        } else if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.open_url === 'function') {
+            window.pywebview.api.open_url(url);
+        } else {
+            window.open(url, '_blank');
+        }
+    };
 
     window.MushroomRadar = {
         refresh: refreshRadarData,

@@ -164,27 +164,32 @@ class MushroomRadarService:
                 logger.error(f"重試查詢蘑菇資料失敗: {e2}")
                 return {"success": False, "error": str(e2)}
 
-    def check_new_mushrooms(self, city: str = "", area: str = "", engagement: str = "under_five", level: str = "巨大", mushroom_type: str = "") -> Dict[str, Any]:
+    def check_new_mushrooms(self, city: str = "", area: str = "", engagement: str = "under_five", level: str = "巨大", mushroom_type: str = "", sort: str = "updated", freshness: str = "60") -> Dict[str, Any]:
         """
         檢查是否有新出現的符合條件蘑菇：
-        - 支援自訂尺寸 level ('巨大', '大', '普通', '小', 'all')
-        - 支援自訂屬性 mushroom_type ('RockCrystalMushroom', 'RedFireMushroom', etc.)
+        - 支援自訂尺寸 level ('巨大', '大', '一般', '普通', '小', 'all')
+        - 支援自訂屬性 mushroom_type ('LunarNewYearMushroom', 'RockCrystalMushroom', etc.)
+        - 支援資料更新時間 freshness ('60', '360', '1440', '0')
+        - 支援排序方式 sort ('updated', 'power', 'challengers', 'ending', 'hp')
         - 回傳全量清單 items 與新目標 new_items
         """
         level_map = {
             "giant": "巨大",
             "large": "大",
-            "normal": "普通",
+            "normal": "一般",
             "small": "小",
             "all": "",
             "巨大": "巨大",
             "大": "大",
-            "普通": "普通",
+            "普通": "一般",
+            "一般": "一般",
             "小": "小",
             "全部": ""
         }
         actual_level = level_map.get(level, level if level not in ("all", "全部") else "")
         actual_type = "" if mushroom_type in ("all", "全部", "") else mushroom_type
+        actual_freshness = str(freshness) if str(freshness) != "" else "60"
+        actual_sort = sort if sort else "updated"
 
         payload = {
             "mode": "list",
@@ -194,8 +199,8 @@ class MushroomRadarService:
             "type": actual_type,
             "level": actual_level,
             "engagement": engagement,
-            "freshness": "1440",
-            "sort": "updated",
+            "freshness": actual_freshness,
+            "sort": actual_sort,
             "page": 1
         }
         

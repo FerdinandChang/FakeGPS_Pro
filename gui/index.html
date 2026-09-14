@@ -318,25 +318,53 @@
                         <option value="large">🍄 大菇</option>
                         <option value="normal">🍄 普通菇</option>
                         <option value="small">🍄 小菇</option>
-                        <option value="all">🌐 全部尺寸</option>
+                        <option value="all">🌐 全部大小</option>
                     </select>
                 </div>
 
-                <!-- 第二行：蘑菇屬性、參戰人數 -->
+                <!-- 第二行：蘑菇種類、參戰人數 -->
                 <div class="radar-filter-row">
-                    <select id="radar-filter-type" class="radar-select" title="設定要追蹤的蘑菇屬性/類型">
-                        <option value="all" selected>🎨 全部屬性</option>
-                        <option value="RockCrystalMushroom">💎 水晶菇</option>
-                        <option value="FireMushroom">🔥 火菇</option>
-                        <option value="WaterMushroom">💧 水菇</option>
-                        <option value="ElectricMushroom">⚡ 電菇</option>
-                        <option value="PoisonMushroom">🟣 毒菇</option>
-                        <option value="Event">🎃 節慶活動菇</option>
+                    <select id="radar-filter-type" class="radar-select" title="設定要追蹤的蘑菇屬性/種類 (與官網完全對齊)">
+                        <option value="all" selected>🎨 全部種類</option>
+                        <option value="elemental">✨ 元素菇</option>
+                        <option value="LunarNewYearMushroom">🏮 華麗蘑菇 (活動)</option>
+                        <option value="RockCrystalMushroom">💎 水晶蘑菇</option>
+                        <option value="RedFireMushroom">🔥 火蘑菇</option>
+                        <option value="BlueWaterMushroom">💧 水蘑菇</option>
+                        <option value="YellowElectricMushroom">⚡ 電蘑菇</option>
+                        <option value="WhitePoisonousMushroom">🟣 毒蘑菇</option>
+                        <option value="Placeholder26Mushroom">❄️ 冰藍蘑菇</option>
+                        <option value="RockMushroom">🪨 灰色蘑菇</option>
+                        <option value="WhiteMushroom">🤍 白色蘑菇</option>
+                        <option value="RedMushroom">🔴 紅色蘑菇</option>
+                        <option value="BlueMushroom">🔵 藍色蘑菇</option>
+                        <option value="YellowMushroom">🟡 黃色蘑菇</option>
+                        <option value="WingedMushroom">🪽 粉紅色蘑菇</option>
+                        <option value="PurpleMushroom">💜 紫色蘑菇</option>
                     </select>
                     <select id="radar-filter-engagement" class="radar-select" title="篩選目前參戰人數">
                         <option value="under_five" selected>👥 未滿 5 人 (可參戰)</option>
-                        <option value="all">👥 全部狀態 (含滿員)</option>
+                        <option value="with_power">⚔️ 已有人參戰</option>
+                        <option value="all">🌐 全部狀態 (含滿員)</option>
                         <option value="no_power">🌱 0 人 (尚未有人打)</option>
+                        <option value="full">🈵 已滿員</option>
+                    </select>
+                </div>
+
+                <!-- 第三行：資料更新範圍、排序依據 (比照原網站) -->
+                <div class="radar-filter-row">
+                    <select id="radar-filter-freshness" class="radar-select" title="篩選資料更新時間 (預設最近一小時，與官網同步最新資料)">
+                        <option value="60" selected>⚡ 最近一小時 (最即時)</option>
+                        <option value="360">🕒 最近六小時</option>
+                        <option value="1440">📅 最近一天</option>
+                        <option value="0">🌐 全部時間</option>
+                    </select>
+                    <select id="radar-filter-sort" class="radar-select" title="設定清單排序方式 (與官網一致)">
+                        <option value="updated" selected>⏱️ 最近更新 (預設推薦)</option>
+                        <option value="power">⚔️ 總戰力最高</option>
+                        <option value="challengers">👥 參加人數最多</option>
+                        <option value="ending">⏳ 即將結束</option>
+                        <option value="hp">🩸 剩餘血量最低</option>
                     </select>
                 </div>
 
@@ -377,7 +405,7 @@
                 
                 <div class="radar-status-bar">
                     <span>符合條件蘑菇: <strong id="radar-count-badge">正在載入...</strong></span>
-                    <button onclick="openExternalUrl('https://pipimushroom.com/ppmushroom.aspx?regionCode=TW&engagement=under_five')" style="background:none; border:none; color:#38bdf8; font-size:0.72rem; cursor:pointer; text-decoration:underline;">🌐 開啟戰況網頁</button>
+                    <button onclick="openMushroomWebWithCurrentFilters()" style="background:none; border:none; color:#38bdf8; font-size:0.72rem; cursor:pointer; text-decoration:underline;">🌐 開啟戰況網頁</button>
                 </div>
             </div>
 

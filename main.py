@@ -208,9 +208,9 @@ class JsApi:
             logger.error(f"開啟瀏覽器失敗: {e}")
             return False
 
-    def query_giant_mushrooms(self, city: str = "", area: str = "", engagement: str = "under_five", level: str = "巨大", mushroom_type: str = "") -> Dict[str, Any]:
-        """查詢蘑菇即時資料（支援尺寸、屬性、參戰過濾）"""
-        return self.mushroom_radar.check_new_mushrooms(city, area, engagement, level, mushroom_type)
+    def query_giant_mushrooms(self, city: str = "", area: str = "", engagement: str = "under_five", level: str = "巨大", mushroom_type: str = "", sort: str = "updated", freshness: str = "60") -> Dict[str, Any]:
+        """查詢蘑菇即時資料（支援尺寸、屬性、參戰、排序與更新時間過濾）"""
+        return self.mushroom_radar.check_new_mushrooms(city, area, engagement, level, mushroom_type, sort, freshness)
 
     def notify_desktop(self, title: str, message: str) -> bool:
         """觸發系統原生桌面通知"""

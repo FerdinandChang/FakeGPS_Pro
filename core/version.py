@@ -1,7 +1,7 @@
 """
 FakeGPS Pro - Application Version Definition
 """
-CURRENT_VERSION = "1.2.1"
+CURRENT_VERSION = "1.2.2"
 
 def parse_version(ver_str: str):
     """解析版本字串為數字元組，例如 'v1.2.3' -> (1, 2, 3)"""
