@@ -26,7 +26,6 @@ python3 -m PyInstaller \
   --windowed \
   --name "FakeGPS_Pro" \
   --add-data "gui:gui" \
-  --add-data "core/fetch_mushrooms.js:core" \
   --add-data "manual.html:." \
   --add-data "lzss.py:." \
   --add-data "lzfse.py:." \

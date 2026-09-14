@@ -9,27 +9,138 @@ import logging
 import subprocess
 from typing import Dict, Any, List, Set, Optional
 
+import time
+import hmac
+import base64
+import hashlib
+import requests
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding
+
 logger = logging.getLogger("MushroomRadar")
+
+
+class PurePythonPipiClient:
+    """純 Python 實現皮皮蘑菇安全 API 客戶端 (免裝 Node.js，原生加解密)"""
+    BASE_URL = "https://pipimushroom.com"
+
+    def __init__(self):
+        self.session = requests.Session()
+        self.session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer": "https://pipimushroom.com/ppmushroom.aspx"
+        })
+        self.cached_session: Optional[Dict[str, Any]] = None
+
+    def _get_api_session(self) -> Dict[str, Any]:
+        now = time.time()
+        if self.cached_session:
+            expires = self.cached_session.get("expires_ts", 0)
+            if expires - now > 60:
+                return self.cached_session
+
+        # 1. 取得主頁 Cookie
+        self.session.get(f"{self.BASE_URL}/ppmushroom.aspx", timeout=10)
+
+        # 2. 握手取得安全 Token 與金鑰
+        url = f"{self.BASE_URL}/ApiSession.ashx"
+        resp = self.session.get(url, timeout=10, headers={"Accept": "application/json"})
+        if resp.status_code != 200:
+            raise RuntimeError(f"取得 ApiSession 失敗: HTTP {resp.status_code}")
+
+        data = resp.json()
+        if not data.get("ok"):
+            raise RuntimeError(f"ApiSession 回應未通過: {data}")
+
+        token = data.get("a")
+        enc_key = base64.b64decode(data.get("b"))
+        sig_key = base64.b64decode(data.get("c"))
+
+        self.cached_session = {
+            "token": token,
+            "enc_key": enc_key,
+            "sig_key": sig_key,
+            "expires_ts": now + 1800
+        }
+        return self.cached_session
+
+    def query(self, payload: dict) -> dict:
+        api_sess = self._get_api_session()
+        token = api_sess["token"]
+        enc_key = api_sess["enc_key"]
+        sig_key = api_sess["sig_key"]
+
+        # 1. 生成 16 bytes IV 與 18 bytes nonce
+        iv = os.urandom(16)
+        nonce = os.urandom(18)
+        timestamp = str(int(time.time() * 1000))
+
+        iv_b64 = base64.b64encode(iv).decode("ascii")
+        nonce_b64 = base64.b64encode(nonce).decode("ascii")
+
+        # 2. AES-CBC + PKCS7 加密 payload
+        plaintext = json.dumps(payload, separators=(',', ':'), ensure_ascii=False).encode("utf-8")
+        padder = padding.PKCS7(128).padder()
+        padded_data = padder.update(plaintext) + padder.finalize()
+
+        cipher = Cipher(algorithms.AES(enc_key), modes.CBC(iv))
+        encryptor = cipher.encryptor()
+        ciphertext = encryptor.update(padded_data) + encryptor.finalize()
+        cipher_b64 = base64.b64encode(ciphertext).decode("ascii")
+
+        # 3. HMAC-SHA256 計算請求簽名: token.timestamp.nonce_b64.iv_b64.cipher_b64
+        sign_string = f"{token}.{timestamp}.{nonce_b64}.{iv_b64}.{cipher_b64}".encode("utf-8")
+        signature = hmac.new(sig_key, sign_string, hashlib.sha256).digest()
+        sig_b64 = base64.b64encode(signature).decode("ascii")
+
+        req_body = {
+            "a": token,
+            "b": timestamp,
+            "c": nonce_b64,
+            "d": iv_b64,
+            "e": cipher_b64,
+            "f": sig_b64
+        }
+
+        # 4. 發送請求
+        post_url = f"{self.BASE_URL}/Handlers/PPMushroomData.ashx"
+        resp = self.session.post(post_url, json=req_body, timeout=12)
+        if resp.status_code != 200:
+            raise RuntimeError(f"查詢請求失敗: HTTP {resp.status_code}, 內容: {resp.text[:200]}")
+
+        resp_data = resp.json()
+        if not resp_data or "e" not in resp_data:
+            return resp_data
+
+        # 5. 驗證回應簽名與解密: token.d.e
+        resp_iv_b64 = resp_data["d"]
+        resp_cipher_b64 = resp_data["e"]
+        resp_sig_b64 = resp_data["f"]
+
+        verify_string = f"{token}.{resp_iv_b64}.{resp_cipher_b64}".encode("utf-8")
+        expected_sig = base64.b64encode(hmac.new(sig_key, verify_string, hashlib.sha256).digest()).decode("ascii")
+        if expected_sig != resp_sig_b64:
+            raise RuntimeError("回應簽名驗證失敗！")
+
+        resp_iv = base64.b64decode(resp_iv_b64)
+        resp_cipher = base64.b64decode(resp_cipher_b64)
+
+        decryptor = Cipher(algorithms.AES(enc_key), modes.CBC(resp_iv)).decryptor()
+        padded_plain = decryptor.update(resp_cipher) + decryptor.finalize()
+        unpadder = padding.PKCS7(128).unpadder()
+        decrypted_bytes = unpadder.update(padded_plain) + unpadder.finalize()
+
+        return json.loads(decrypted_bytes.decode("utf-8"))
+
 
 class MushroomRadarService:
     def __init__(self):
         self.seen_mushroom_ids: Set[int] = set()
         self.is_running = False
-        
-        # Determine path to fetch_mushrooms.js
-        if getattr(sys, 'frozen', False):
-            base_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
-        else:
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            
-        self.bridge_script = os.path.join(base_dir, "core", "fetch_mushrooms.js")
-        if not os.path.exists(self.bridge_script):
-            alt = os.path.join(base_dir, "_internal", "core", "fetch_mushrooms.js")
-            if os.path.exists(alt):
-                self.bridge_script = alt
+        self.client = PurePythonPipiClient()
 
     def query_mushrooms(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """呼叫 Node.js 加密橋接腳本取得即時蘑菇資料"""
+        """純 Python 查詢皮皮蘑菇資料（零外部依賴、毫秒級響應）"""
         if params is None:
             params = {
                 "mode": "list",
@@ -39,26 +150,19 @@ class MushroomRadarService:
                 "freshness": "1440",
                 "sort": "updated"
             }
-        
+
         try:
-            cmd = ["node", self.bridge_script, json.dumps(params, ensure_ascii=False)]
-            creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-            
-            output = subprocess.check_output(
-                cmd,
-                stderr=subprocess.PIPE,
-                creationflags=creationflags,
-                timeout=15.0
-            ).decode("utf-8", errors="ignore")
-            
-            data = json.loads(output.strip())
+            data = self.client.query(params)
             return {"success": True, "data": data}
-        except subprocess.TimeoutExpired:
-            logger.error("查詢蘑菇資料逾時 (15s)")
-            return {"success": False, "error": "查詢逾時，請稍後再試"}
         except Exception as e:
             logger.error(f"查詢蘑菇資料失敗: {e}")
-            return {"success": False, "error": str(e)}
+            try:
+                self.client.cached_session = None
+                data = self.client.query(params)
+                return {"success": True, "data": data}
+            except Exception as e2:
+                logger.error(f"重試查詢蘑菇資料失敗: {e2}")
+                return {"success": False, "error": str(e2)}
 
     def check_new_mushrooms(self, city: str = "", area: str = "", engagement: str = "under_five", level: str = "巨大", mushroom_type: str = "") -> Dict[str, Any]:
         """
