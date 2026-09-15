@@ -13,24 +13,24 @@ from datetime import datetime
 sys.stdout.reconfigure(encoding='utf-8')
 
 REPO = "FerdinandChang/FakeGPS_Pro"
-VERSION = "v1.2.3"
-RELEASE_TITLE = "FakeGPS Pro v1.2.3 - 🛡️ 徹底根治 GPS 彈回真實地點 (Anti-Rubberbanding) 與自動靜默重連"
+VERSION = "v1.2.4"
+RELEASE_TITLE = "FakeGPS Pro v1.2.4 - ⚡ 徹底修復 GPS 覆蓋失效與 DVT 互斥安全鎖架構重大更新"
 
-RELEASE_BODY = """# FakeGPS Pro v1.2.3 - 🛡️ 徹底根治 GPS 彈回真實地點與常駐心跳保活重大更新
+RELEASE_BODY = """# FakeGPS Pro v1.2.4 - ⚡ 徹底修復 GPS 覆蓋失效與 DVT 互斥安全鎖架構重大更新
 
-本版本針對使用者反饋的「GPS 覆蓋後會突然跳回手機真實地點」與「需手動重新點擊已連線」現象進行底層架構級徹底根治：
+本版本針對 v1.2.3 在部分環境下發生的「覆蓋 GPS 無法正常運作」問題進行底層架構修復與安全防禦全面升級：
 
 ## 🌟 重點修復與更新內容
 
-### 1. 🛡️ 新增「防彈回常駐心跳守護者 (Anti-Rubberbanding Daemon)」
-* **每 1.5 秒主動保活**：傳統虛擬定位只在點擊瞬間發送一筆資料，靜止時完全停止傳輸，導致 iOS 核心判定除錯結束而將 GPS 逾時還原。新版加入專屬背景守護執行緒，原地靜止時每 1.5 秒自動補發座標，DVT 模擬通道永久維持活躍狀態，**iOS 永不逾時重設**！
-* **持續壓制 Wi-Fi / 基地台回彈**：持續性的模擬定位訊號能強勢壓制 Apple 背景掃描周圍 Wi-Fi 路由器 BSSID 產生的定位突刺，徹底杜絕原地跳回真身。
+### 1. 🛡️ 全面導入 `_io_lock` 執行緒互斥安全鎖 (Thread-Safe DVT Channel)
+* **徹底杜絕並發搶佔衝突**：主執行緒（瞬移、一鍵秒飛、搖桿移動、循跡路線）與背景保活執行緒全數受到底層互斥鎖嚴密保護，保證 USB Mux 與 DVT Socket 封包時序 100% 正確，**徹底根治 v1.2.3 座標覆蓋失效問題**！
 
-### 2. 🌊 微米級自然物理微震 (Micro-Jitter)
-* 原地靜止時自動融入 ±0.000001 度（約 10~20 公分）自然物理微震，精準模擬真機衛星晶片的真實物理熱噪聲，防止 iOS 判定為凍結訊號，同時具備強效的**遊戲防封保護**。
+### 2. 🌊 升級「非阻塞讓位保活機制 (Non-blocking Cooperative Daemon)」
+* **操作零衝突、使用者絕對優先**：背景心跳守護者改採非阻塞鎖模式（`acquire(blocking=False)`）。當使用者點擊瞬移或推動搖桿時，心跳執行緒**立即主動讓位略過**，絕不搶佔 DVT 通道與 CPU 資源。
+* **溫和維持定位活躍**：由原本每 1.5 秒激進轟炸調整為閒置滿 5 秒才溫和補發座標，既有效防止 Windows USB 節能休眠（Selective Suspend）與 iOS CoreLocation 回彈，又確保系統極致輕盈穩定。
 
-### 3. 🔄 斷線自動靜默重連 (Silent Auto-Healing)
-* 若因傳輸線微動、晃動或 Windows USB 節能休眠導致傳輸通道瞬斷，背景守護程式會**自動嘗試靜默重連並重新補發座標**，**徹底免去使用者必須手動再去按「已連線」的困擾**！
+### 3. 🔒 徹底移除背景自作主張重連 (Prevent Cascade Reconnection)
+* 徹底移除心跳逾時後在背景自動調用 `connect()` 的雪崩機制，杜絕連線通道被強行重置導致裝置斷線的致命問題。
 
 ### 4. 🍄 完整繼承 v1.2.2 蘑菇戰情強化
 * 包含全尺寸等級追蹤、一鍵秒飛真實瞬移、官方 14 種種類代碼對齊、最近一小時即時更新與官方 5 大排序方式同步。
@@ -39,7 +39,7 @@ RELEASE_BODY = """# FakeGPS Pro v1.2.3 - 🛡️ 徹底根治 GPS 彈回真實�
 
 ## 📦 下載與安裝說明
 
-* **Windows 使用者**：下載 `FakeGPS_Pro_Windows_v1.2.3.zip`，解壓縮後執行 `FakeGPS_Pro.exe` 即可（亦可直接在軟體內點「🔄 檢查更新」一鍵線上自動升級！）。
+* **Windows 使用者**：下載 `FakeGPS_Pro_Windows_v1.2.4.zip`，解壓縮後執行 `FakeGPS_Pro.exe` 即可（亦可直接在軟體內點「🔄 檢查更新」一鍵線上自動升級！）。
 * **Mac 使用者**：下載對應晶片的 DMG 檔案（`FakeGPS_Pro-AppleSilicon.dmg` 適用 M1/M2/M3/M4；`FakeGPS_Pro-Intel.dmg` 適用舊款 Intel Mac），雙擊開啟即可使用。
 """
 

@@ -27,6 +27,9 @@ class IOSLocationService:
         self.last_sent_time = 0.0
         self.last_connected_serial: Optional[str] = None
         
+        # 建立執行緒安全互斥鎖，保證 DVT 通道與 USB Mux 傳輸絕不發生跨執行緒並發衝突
+        self._io_lock = threading.Lock()
+
         # 建立獨立專屬的背景 Asyncio Event Loop 執行緒
         self._loop = asyncio.new_event_loop()
         self._thread = threading.Thread(target=self._start_loop, daemon=True, name="AsyncIOServiceWorker")
@@ -67,109 +70,110 @@ class IOSLocationService:
 
     def connect(self, serial: Optional[str] = None) -> Dict[str, any]:
         """連線至指定的 iOS 裝置並啟動模擬定位服務"""
-        try:
-            from pymobiledevice3.lockdown import create_using_usbmux
-            from pymobiledevice3.services.mobile_image_mounter import auto_mount
-            from pymobiledevice3.exceptions import AlreadyMountedError, DeveloperModeIsNotEnabledError
-
-            logger.info(f"正在連線裝置 (serial={serial})...")
-            self.lockdown = self._run_async(create_using_usbmux(serial=serial))
-            
-            name = str(self.lockdown.display_name or "iPhone")
-            version = str(self.lockdown.product_version or "Unknown")
+        with self._io_lock:
             try:
-                model_raw = self._run_async(self.lockdown.get_value(key="ProductType"))
-                model = str(model_raw) if model_raw else "iPhone"
-            except Exception:
-                model = "iPhone"
+                from pymobiledevice3.lockdown import create_using_usbmux
+                from pymobiledevice3.services.mobile_image_mounter import auto_mount
+                from pymobiledevice3.exceptions import AlreadyMountedError, DeveloperModeIsNotEnabledError
 
-            self.current_device_info = {
-                "name": name,
-                "version": version,
-                "model": model,
-                "udid": str(self.lockdown.identifier),
-            }
-            logger.info(f"成功識別裝置: {name} (iOS {version}, {model})")
-
-            # 檢查並掛載 Developer Disk Image (無論 iOS 15/16 還是 iOS 17/18 均需要掛載 DDI 才能啟動 dtservicehub)
-            logger.info("正在檢查並掛載 Developer Disk Image (DDI)...")
-            try:
-                self._run_async(auto_mount(self.lockdown), timeout=60.0)
-                logger.info("Developer Disk Image 掛載完成")
-            except AlreadyMountedError:
-                logger.info("Developer Disk Image 已經掛載，直接使用")
-            except DeveloperModeIsNotEnabledError:
-                raise RuntimeError("您的 iPhone 尚未開啟【開發者模式】！請在 iPhone 上前往「設定」→「隱私權與安全性」→「開發者模式」將其開啟，並重新開機確認。")
-            except Exception as mount_err:
-                logger.warning(f"DDI 掛載提示: {mount_err}")
-
-            # 判斷是否為 iOS 17+ (包括 iOS 17, 18, 26)
-            major_ver = 0
-            try:
-                major_ver = int(version.split(".")[0])
-            except Exception:
-                major_ver = 17
-
-            if major_ver >= 17:
-                self._is_ios17_plus = True
-                logger.info("檢測為 iOS 17+ 系統，正在建立 Userspace RSD Tunnel 通道...")
-                from pymobiledevice3.remote.userspace_tunnel import establish_userspace_rsd
-                from pymobiledevice3.services.dvt.instruments.dvt_provider import DvtProvider
-                from pymobiledevice3.services.dvt.instruments.location_simulation import LocationSimulation
-
-                self.rsd = self._run_async(establish_userspace_rsd(serial=serial or self.lockdown.udid), timeout=30.0)
-                self.dvt = DvtProvider(self.rsd)
-                self.location_service = LocationSimulation(self.dvt)
+                logger.info(f"正在連線裝置 (serial={serial})...")
+                self.lockdown = self._run_async(create_using_usbmux(serial=serial))
                 
-                # 進入 DVT 服務連線
-                self._run_async(self.location_service.connect(), timeout=15.0)
-                logger.info("iOS 17+ DVT LocationSimulation 通道已成功建立！")
-            else:
-                self._is_ios17_plus = False
-                from pymobiledevice3.services.simulate_location import DtSimulateLocation
-                self.location_service = DtSimulateLocation(self.lockdown)
-                logger.info("iOS Legacy SimulateLocation 服務已啟動")
-
-            self.last_connected_serial = serial or getattr(self.lockdown, 'udid', None)
-            self.is_connected = True
-            return {
-                "success": True,
-                "device": self.current_device_info,
-                "message": "已成功連線並啟動定位服務"
-            }
-
-        except Exception as e:
-            err_msg = str(e)
-            logger.error(f"連線裝置失敗: {err_msg}")
-            self.is_connected = False
-            
-            if "dtservicehub" in err_msg or "DeveloperMode" in err_msg or "開發者模式" in err_msg:
-                # 自動嘗試發送 AMFI 喚醒指令，強制讓 iPhone 設定現形
+                name = str(self.lockdown.display_name or "iPhone")
+                version = str(self.lockdown.product_version or "Unknown")
                 try:
-                    from pymobiledevice3.services.amfi import AmfiService
-                    if self.lockdown:
-                        self._run_async(AmfiService(self.lockdown).reveal_developer_mode_option_in_ui(), timeout=5.0)
-                        logger.info("已自動發送 AMFI 喚醒指令，強制讓 iPhone 設定中現形【開發者模式】！")
+                    model_raw = self._run_async(self.lockdown.get_value(key="ProductType"))
+                    model = str(model_raw) if model_raw else "iPhone"
                 except Exception:
-                    pass
+                    model = "iPhone"
 
-                user_friendly_msg = (
-                    "連線失敗：iPhone 尚未開啟【開發者模式】。\n\n"
-                    "已為您強制喚醒 iPhone 設定選單！請依照以下步驟啟用：\n"
-                    "1. 打開 iPhone「設定」→「隱私權與安全性」\n"
-                    "2. 滑到最底部，點選【開發者模式】（剛剛已強制讓它顯示）\n"
-                    "3. 切換為「開啟」，並點選「重新啟動」手機\n"
-                    "4. 重開機解鎖後點擊「開啟」並輸入螢幕密碼即完成！"
-                )
-            elif "PasswordProtected" in err_msg or "Passcode" in err_msg or "Pairing" in err_msg or "Trust" in err_msg:
-                user_friendly_msg = "連線失敗：請解鎖 iPhone 螢幕，並在彈出的提示中點選「信任這部電腦」。"
-            else:
-                user_friendly_msg = f"連線失敗: {err_msg}。請確認 iPhone 已解鎖並信任此電腦。"
+                self.current_device_info = {
+                    "name": name,
+                    "version": version,
+                    "model": model,
+                    "udid": str(self.lockdown.identifier),
+                }
+                logger.info(f"成功識別裝置: {name} (iOS {version}, {model})")
+
+                # 檢查並掛載 Developer Disk Image (無論 iOS 15/16 還是 iOS 17/18 均需要掛載 DDI 才能啟動 dtservicehub)
+                logger.info("正在檢查並掛載 Developer Disk Image (DDI)...")
+                try:
+                    self._run_async(auto_mount(self.lockdown), timeout=60.0)
+                    logger.info("Developer Disk Image 掛載完成")
+                except AlreadyMountedError:
+                    logger.info("Developer Disk Image 已經掛載，直接使用")
+                except DeveloperModeIsNotEnabledError:
+                    raise RuntimeError("您的 iPhone 尚未開啟【開發者模式】！請在 iPhone 上前往「設定」→「隱私權與安全性」→「開發者模式」將其開啟，並重新開機確認。")
+                except Exception as mount_err:
+                    logger.warning(f"DDI 掛載提示: {mount_err}")
+
+                # 判斷是否為 iOS 17+ (包括 iOS 17, 18, 26)
+                major_ver = 0
+                try:
+                    major_ver = int(version.split(".")[0])
+                except Exception:
+                    major_ver = 17
+
+                if major_ver >= 17:
+                    self._is_ios17_plus = True
+                    logger.info("檢測為 iOS 17+ 系統，正在建立 Userspace RSD Tunnel 通道...")
+                    from pymobiledevice3.remote.userspace_tunnel import establish_userspace_rsd
+                    from pymobiledevice3.services.dvt.instruments.dvt_provider import DvtProvider
+                    from pymobiledevice3.services.dvt.instruments.location_simulation import LocationSimulation
+
+                    self.rsd = self._run_async(establish_userspace_rsd(serial=serial or self.lockdown.udid), timeout=30.0)
+                    self.dvt = DvtProvider(self.rsd)
+                    self.location_service = LocationSimulation(self.dvt)
+                    
+                    # 進入 DVT 服務連線
+                    self._run_async(self.location_service.connect(), timeout=15.0)
+                    logger.info("iOS 17+ DVT LocationSimulation 通道已成功建立！")
+                else:
+                    self._is_ios17_plus = False
+                    from pymobiledevice3.services.simulate_location import DtSimulateLocation
+                    self.location_service = DtSimulateLocation(self.lockdown)
+                    logger.info("iOS Legacy SimulateLocation 服務已啟動")
+
+                self.last_connected_serial = serial or getattr(self.lockdown, 'udid', None)
+                self.is_connected = True
+                return {
+                    "success": True,
+                    "device": self.current_device_info,
+                    "message": "已成功連線並啟動定位服務"
+                }
+
+            except Exception as e:
+                err_msg = str(e)
+                logger.error(f"連線裝置失敗: {err_msg}")
+                self.is_connected = False
                 
-            return {
-                "success": False,
-                "message": user_friendly_msg
-            }
+                if "dtservicehub" in err_msg or "DeveloperMode" in err_msg or "開發者模式" in err_msg:
+                    # 自動嘗試發送 AMFI 喚醒指令，強制讓 iPhone 設定現形
+                    try:
+                        from pymobiledevice3.services.amfi import AmfiService
+                        if self.lockdown:
+                            self._run_async(AmfiService(self.lockdown).reveal_developer_mode_option_in_ui(), timeout=5.0)
+                            logger.info("已自動發送 AMFI 喚醒指令，強制讓 iPhone 設定中現形【開發者模式】！")
+                    except Exception:
+                        pass
+
+                    user_friendly_msg = (
+                        "連線失敗：iPhone 尚未開啟【開發者模式】。\n\n"
+                        "已為您強制喚醒 iPhone 設定選單！請依照以下步驟啟用：\n"
+                        "1. 打開 iPhone「設定」→「隱私權與安全性」\n"
+                        "2. 滑到最底部，點選【開發者模式】（剛剛已強制讓它顯示）\n"
+                        "3. 切換為「開啟」，並點選「重新啟動」手機\n"
+                        "4. 重開機解鎖後點擊「開啟」並輸入螢幕密碼即完成！"
+                    )
+                elif "PasswordProtected" in err_msg or "Passcode" in err_msg or "Pairing" in err_msg or "Trust" in err_msg:
+                    user_friendly_msg = "連線失敗：請解鎖 iPhone 螢幕，並在彈出的提示中點選「信任這部電腦」。"
+                else:
+                    user_friendly_msg = f"連線失敗: {err_msg}。請確認 iPhone 已解鎖並信任此電腦。"
+                    
+                return {
+                    "success": False,
+                    "message": user_friendly_msg
+                }
 
     def enable_developer_mode(self, serial: Optional[str] = None) -> Dict[str, any]:
         """透過 Apple AMFI 服務強制讓 iPhone 顯示並嘗試啟用開發者模式"""
@@ -230,93 +234,94 @@ class IOSLocationService:
         if not self.is_connected or not self.location_service:
             logger.warning("未連線至定位服務，無法發送座標")
             return False
-        try:
-            self._run_async(self.location_service.set(lat, lon), timeout=5.0)
-            self.current_lat = lat
-            self.current_lon = lon
-            self.last_sent_time = time.time()
-            logger.info(f"已成功覆蓋 GPS 座標至: {lat:.6f}, {lon:.6f}")
-            return True
-        except Exception as e:
-            logger.error(f"發送座標失敗: {e}")
-            return False
+
+        with self._io_lock:
+            if not self.is_connected or not self.location_service:
+                return False
+            try:
+                flat = round(float(lat), 6)
+                flon = round(float(lon), 6)
+                self._run_async(self.location_service.set(flat, flon), timeout=10.0)
+                self.current_lat = flat
+                self.current_lon = flon
+                self.last_sent_time = time.time()
+                logger.info(f"已成功覆蓋 GPS 座標至: {flat:.6f}, {flon:.6f}")
+                return True
+            except Exception as e:
+                logger.error(f"發送座標失敗: {e}")
+                return False
 
     def clear_location(self) -> bool:
         """清除模擬定位，還原手機真實 GPS"""
-        self.current_lat = None
-        self.current_lon = None
-        if not self.is_connected or not self.location_service:
-            logger.warning("未連線至定位服務，無法還原座標")
-            return False
-        try:
-            self._run_async(self.location_service.clear(), timeout=5.0)
-            logger.info("已成功清除模擬定位，還原真實 GPS！")
-            return True
-        except Exception as e:
-            logger.error(f"清除模擬定位失敗: {e}")
-            return False
+        with self._io_lock:
+            self.current_lat = None
+            self.current_lon = None
+            if not self.is_connected or not self.location_service:
+                logger.warning("未連線至定位服務，無法還原座標")
+                return False
+            try:
+                self._run_async(self.location_service.clear(), timeout=10.0)
+                logger.info("已成功清除模擬定位，還原真實 GPS！")
+                return True
+            except Exception as e:
+                logger.error(f"清除模擬定位失敗: {e}")
+                return False
 
     def _heartbeat_loop(self):
         """
         防彈回/防跳回真實位置 (Anti-Rubberbanding) 常駐心跳守護執行緒：
-        每隔 1.5 秒主動檢查一次：
-        - 若靜止不動超過 1.5 秒且處於連線狀態，自動向 iOS 補送帶 ±0.000001 度微震的座標；
-        - 持續強勢壓制 iOS 背景 Wi-Fi/基地台校驗，保持 DVT 通道永久活絡，徹底解決跳回真身問題；
-        - 若偵測到傳輸通道因線材或休眠中斷，自動嘗試靜默重連恢復定位！
+        - 每隔 3 秒檢查一次，僅在閒置超過 5 秒時溫和補發當前座標維持 USB 活躍與 DVT channel 活絡；
+        - 使用非阻塞鎖 (acquire(blocking=False))：主執行緒有動作（瞬移/秒飛/搖桿/循跡）時立即自動讓位，絕不搶佔通道；
+        - 徹底移除背景 self.connect()，避免在通訊抖動時把正常連線打爛重置。
         """
         while not self._heartbeat_stop.is_set():
-            time.sleep(1.5)
+            time.sleep(3.0)
             if not self.is_connected or not self.location_service:
                 continue
             if self.current_lat is None or self.current_lon is None:
                 continue
             
-            # 若剛剛才主動送過新座標（例如搖桿操作或路徑移動中），則略過本次心跳
+            # 若距離上次主動發送尚未滿 5 秒，表示通道非常活躍，略過本次保活
             now = time.time()
-            if now - self.last_sent_time < 1.4:
+            if now - self.last_sent_time < 5.0:
+                continue
+
+            # 使用非阻塞鎖：若使用者正在操作或移動，主動讓位絕不搶鎖
+            if not self._io_lock.acquire(blocking=False):
                 continue
 
             try:
-                # 加上極微小的自然 GPS 物理漂移 (約 10~20 公分)，既防作弊偵測，又防止 iOS 核心進入省電休眠
-                jitter_lat = self.current_lat + random.uniform(-0.000001, 0.000001)
-                jitter_lon = self.current_lon + random.uniform(-0.000001, 0.000001)
-                self._run_async(self.location_service.set(jitter_lat, jitter_lon), timeout=3.0)
-                self.last_sent_time = now
+                # 雙重檢查狀態，確保獲取鎖時仍處於連線中
+                if self.is_connected and self.location_service and self.current_lat is not None and self.current_lon is not None:
+                    self._run_async(self.location_service.set(self.current_lat, self.current_lon), timeout=10.0)
+                    self.last_sent_time = time.time()
             except Exception as e:
-                logger.warning(f"保活心跳發送異常 (可能 USB 通道短暫中斷): {e}")
-                # 嘗試自動靜默修復
-                if self.last_connected_serial:
-                    try:
-                        logger.info("正在背景自動靜默重連 iOS 裝置通道...")
-                        re_res = self.connect(self.last_connected_serial)
-                        if re_res.get("success") and self.current_lat is not None and self.current_lon is not None:
-                            self._run_async(self.location_service.set(self.current_lat, self.current_lon), timeout=5.0)
-                            self.last_sent_time = time.time()
-                            logger.info("自動靜默重連成功，已無感恢復定位覆蓋！")
-                    except Exception as re_err:
-                        logger.warning(f"背景自動重連失敗: {re_err}")
+                logger.warning(f"保活訊號維持提示: {e}")
+            finally:
+                self._io_lock.release()
 
     def disconnect(self):
         """斷開連線"""
-        self.current_lat = None
-        self.current_lon = None
-        try:
-            if self.location_service:
-                try:
-                    self._run_async(self.location_service.clear(), timeout=3.0)
-                except Exception:
-                    pass
-                if hasattr(self.location_service, 'close'):
+        with self._io_lock:
+            self.current_lat = None
+            self.current_lon = None
+            try:
+                if self.location_service:
                     try:
-                        self._run_async(self.location_service.close(), timeout=3.0)
+                        self._run_async(self.location_service.clear(), timeout=3.0)
                     except Exception:
                         pass
-                self.location_service = None
-            self.dvt = None
-            self.rsd = None
-            self.lockdown = None
-            self.is_connected = False
-            self.current_device_info = None
-            logger.info("已中斷 iOS 裝置連線")
-        except Exception as e:
-            logger.error(f"斷開連線時發生錯誤: {e}")
+                    if hasattr(self.location_service, 'close'):
+                        try:
+                            self._run_async(self.location_service.close(), timeout=3.0)
+                        except Exception:
+                            pass
+                    self.location_service = None
+                self.dvt = None
+                self.rsd = None
+                self.lockdown = None
+                self.is_connected = False
+                self.current_device_info = None
+                logger.info("已中斷 iOS 裝置連線")
+            except Exception as e:
+                logger.error(f"斷開連線時發生錯誤: {e}")
