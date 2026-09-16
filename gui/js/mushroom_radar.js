@@ -392,17 +392,25 @@
                         <div class="radar-empty-msg" style="padding: 2rem 1rem; text-align: center;">
                             <div style="font-size: 40px; margin-bottom: 12px;">🔑</div>
                             <strong style="color: #60a5fa; font-size: 15px;">皮皮蘑菇官方已更新為需 Google 登入</strong>
-                            <div style="font-size: 12px; color: #94a3b8; margin: 8px 0 16px; line-height: 1.5;">官網安全性改版，請透過內嵌視窗授權登入一次即可恢復即時戰情與一鍵秒飛！</div>
-                            <button id="btn-login-prompt" class="btn btn-primary" style="margin: 0 auto; padding: 0.6rem 1.2rem; display: inline-flex; align-items: center; gap: 6px; background: #3b82f6; border: none; font-weight: bold; border-radius: 6px; cursor: pointer; color: white;">
-                                🚀 點此一鍵 Google 登入授權
-                            </button>
+                            <div style="font-size: 12px; color: #94a3b8; margin: 8px 0 16px; line-height: 1.5;">官網安全性改版，請授權登入一次即可恢復即時戰情與一鍵秒飛！</div>
+                            <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+                                <button id="btn-login-confirm" class="btn btn-primary" style="padding: 0.6rem 1.2rem; display: inline-flex; align-items: center; gap: 6px; background: #10b981; border: none; font-weight: bold; border-radius: 6px; cursor: pointer; color: white;">
+                                    ✅ 我已完成登入，立即刷新
+                                </button>
+                                <button id="btn-login-reopen" class="btn btn-secondary" style="padding: 0.4rem 1rem; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; border-radius: 6px; cursor: pointer;">
+                                    🚀 重新開啟 Google 登入視窗
+                                </button>
+                            </div>
                             <div style="margin-top: 14px;">
                                 <a href="javascript:void(0)" onclick="MushroomRadar.promptManualCookie()" style="font-size: 11px; color: #64748b; text-decoration: underline;">或手動貼入 Cookie</a>
                             </div>
                         </div>`;
                     if (listContainer) listContainer.innerHTML = authCard;
                     if (sideListContainer) sideListContainer.innerHTML = authCard;
-                    document.getElementById('btn-login-prompt')?.addEventListener('click', () => {
+                    document.getElementById('btn-login-confirm')?.addEventListener('click', () => {
+                        confirmPipiLogin();
+                    });
+                    document.getElementById('btn-login-reopen')?.addEventListener('click', () => {
                         triggerPipiLogin();
                     });
                 } else {
@@ -710,7 +718,14 @@
         const loginBtn = document.getElementById('radar-btn-login');
         if (loginBtn) {
             loginBtn.addEventListener('click', () => {
-                triggerPipiLogin();
+                const text = document.getElementById('pipi-login-text')?.textContent || '';
+                if (text.includes('已登入')) {
+                    const act = confirm('皮皮蘑菇目前已處於登入狀態。\n\n點選【確定】重新開啟登入視窗切換帳號，點選【取消】維持現狀。');
+                    if (act) triggerPipiLogin();
+                } else {
+                    // 若登入視窗已開且已登入，立即自動確認並獲取 Cookie，否則開啟視窗
+                    confirmPipiLogin();
+                }
             });
         }
         checkPipiLoginStatus();
@@ -753,6 +768,27 @@
             } catch (e) {
                 console.warn('檢查皮皮蘑菇登入狀態失敗:', e);
             }
+        }
+    }
+
+    // 手動確認已完成登入並立即刷新
+    async function confirmPipiLogin() {
+        if (!window.pywebview || !window.pywebview.api || typeof window.pywebview.api.confirm_pipi_login !== 'function') {
+            refreshRadarData();
+            return;
+        }
+        showInAppToast('⏳ 驗證登入中', '正在獲取登入憑證並驗證戰況權限...');
+        try {
+            const res = await window.pywebview.api.confirm_pipi_login();
+            if (res && res.success) {
+                updateLoginButtonState(true);
+                showInAppToast('🎉 驗證成功', '已成功驗證皮皮蘑菇登入，正在載入戰況！');
+                refreshRadarData();
+            } else {
+                alert(res?.message || '尚未完成登入，請確認已在彈出視窗完成 Google 登入後重試');
+            }
+        } catch (e) {
+            alert('驗證異常: ' + e);
         }
     }
 
@@ -837,6 +873,7 @@
         playChime: playChime,
         sendDesktopNotification: sendDesktopNotification,
         login: triggerPipiLogin,
+        confirmLogin: confirmPipiLogin,
         promptManualCookie: promptManualCookie,
         teleport: function(lat, lng, encodedName) {
             const name = decodeURIComponent(encodedName || '');

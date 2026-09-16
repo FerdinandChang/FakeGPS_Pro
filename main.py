@@ -277,6 +277,13 @@ class JsApi:
         """開啟內嵌視窗進行 Google 授權登入皮皮蘑菇"""
         login_url = "https://pipimushroom.com/login.aspx?ReturnUrl=ppmushroom.aspx"
         try:
+            if hasattr(self, '_login_win') and self._login_win:
+                try:
+                    self._login_win.destroy()
+                except Exception:
+                    pass
+                self._login_win = None
+
             login_win = webview.create_window(
                 title="登入皮皮蘑菇 (Google 帳號授權)",
                 url=login_url,
@@ -286,6 +293,7 @@ class JsApi:
                 resizable=True,
                 confirm_close=False
             )
+            self._login_win = login_win
 
             import threading
             import time
@@ -293,36 +301,51 @@ class JsApi:
                 for _ in range(300):
                     time.sleep(1.0)
                     try:
-                        cur_url = login_win.get_current_url()
-                        if not cur_url:
-                            continue
-                        if "pipimushroom.com/ppmushroom.aspx" in cur_url or "pipimushroom.com/mfmap.aspx" in cur_url:
-                            time.sleep(1.0)
-                            cookies = login_win.get_cookies()
-                            cookie_dict = {}
-                            for c in cookies:
-                                name = getattr(c, 'name', None) or (c.get('name') if isinstance(c, dict) else None)
-                                value = getattr(c, 'value', None) or (c.get('value') if isinstance(c, dict) else None)
-                                if name and value:
-                                    cookie_dict[name] = value
+                        if not hasattr(self, '_login_win') or not self._login_win:
+                            break
 
-                            if cookie_dict:
-                                self.mushroom_radar.save_cookies(cookie_dict)
-                                logger.info(f"已成功捕獲皮皮蘑菇 Cookie: {list(cookie_dict.keys())}")
+                        cur_url = ""
+                        try:
+                            cur_url = login_win.get_current_url() or ""
+                        except Exception:
+                            pass
+
+                        cookies = []
+                        try:
+                            cookies = login_win.get_cookies()
+                        except Exception:
+                            pass
+
+                        cookie_dict = {}
+                        for c in cookies:
+                            name = getattr(c, 'name', None) or (c.get('name') if isinstance(c, dict) else None)
+                            value = getattr(c, 'value', None) or (c.get('value') if isinstance(c, dict) else None)
+                            if name and value:
+                                cookie_dict[name] = value
+
+                        is_on_pipi_site = ("pipimushroom.com" in cur_url) and ("login.aspx" not in cur_url) and ("GoogleAuth.ashx" not in cur_url) and ("accounts.google.com" not in cur_url)
+                        has_auth_cookies = ("ASP.NET_SessionId" in cookie_dict) or ("pm_site_session" in cookie_dict)
+
+                        if is_on_pipi_site or (has_auth_cookies and len(cookie_dict) >= 2):
+                            self.mushroom_radar.save_cookies(cookie_dict)
+                            test_res = self.mushroom_radar.query_mushrooms({"mode": "list", "page": 1})
+                            if test_res.get("success"):
+                                logger.info("驗證成功！已成功取得皮皮蘑菇有效授權，自動關閉登入視窗！")
                                 if self.window_holder and self.window_holder[0]:
                                     try:
                                         self.window_holder[0].evaluate_js("if(window.onPipiLoginSuccess) window.onPipiLoginSuccess();")
                                     except Exception:
                                         pass
-                                time.sleep(1.0)
+                                time.sleep(0.5)
                                 try:
                                     login_win.destroy()
                                 except Exception:
                                     pass
+                                self._login_win = None
                                 break
                     except Exception as e:
-                        logger.warning(f"登入監聽退出: {e}")
-                        break
+                        logger.warning(f"登入監聽異常: {e}")
+                        continue
 
             t = threading.Thread(target=_monitor, daemon=True)
             t.start()
@@ -330,6 +353,40 @@ class JsApi:
         except Exception as e:
             logger.error(f"開啟登入視窗失敗: {e}")
             return {"success": False, "message": f"開啟登入視窗失敗: {e}"}
+
+    def confirm_pipi_login(self) -> Dict[str, Any]:
+        """手動主動觸發捕獲登入視窗的 Cookie 並驗證"""
+        cookie_dict = {}
+        if hasattr(self, '_login_win') and self._login_win:
+            try:
+                cookies = self._login_win.get_cookies()
+                for c in cookies:
+                    name = getattr(c, 'name', None) or (c.get('name') if isinstance(c, dict) else None)
+                    value = getattr(c, 'value', None) or (c.get('value') if isinstance(c, dict) else None)
+                    if name and value:
+                        cookie_dict[name] = value
+            except Exception as e:
+                logger.warning(f"讀取登入視窗 Cookie 失敗: {e}")
+
+        if cookie_dict:
+            self.mushroom_radar.save_cookies(cookie_dict)
+
+        test_res = self.mushroom_radar.query_mushrooms({"mode": "list", "page": 1})
+        if test_res.get("success"):
+            if hasattr(self, '_login_win') and self._login_win:
+                try:
+                    self._login_win.destroy()
+                except Exception:
+                    pass
+                self._login_win = None
+            if self.window_holder and self.window_holder[0]:
+                try:
+                    self.window_holder[0].evaluate_js("if(window.onPipiLoginSuccess) window.onPipiLoginSuccess();")
+                except Exception:
+                    pass
+            return {"success": True, "message": "登入成功！"}
+        else:
+            return {"success": False, "message": test_res.get("error", "驗證未通過，請確認已在視窗內完成 Google 登入")}
 
     def start_auto_update(self, download_url: str) -> Dict[str, Any]:
         """開始下載並套用線上自動更新"""
