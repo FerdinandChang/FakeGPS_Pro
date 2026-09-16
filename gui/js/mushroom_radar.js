@@ -740,8 +740,8 @@
                     const act = confirm('皮皮蘑菇目前已處於登入狀態。\n\n點選【確定】重新開啟登入視窗切換帳號，點選【取消】維持現狀。');
                     if (act) triggerPipiLogin();
                 } else {
-                    // 若登入視窗已開且已登入，立即自動確認並獲取 Cookie，否則開啟視窗
-                    confirmPipiLogin();
+                    // 直接開啟登入視窗（用戶需完成登入後點「✅ 我已完成登入」）
+                    triggerPipiLogin();
                 }
             });
         }
@@ -790,22 +790,39 @@
 
     // 手動確認已完成登入並立即刷新
     async function confirmPipiLogin() {
-        if (!window.pywebview || !window.pywebview.api || typeof window.pywebview.api.confirm_pipi_login !== 'function') {
+        if (!window.pywebview || !window.pywebview.api) {
             refreshRadarData();
             return;
         }
-        showInAppToast('⏳ 驗證登入中', '正在獲取登入憑證並驗證戰況權限...');
+        showInAppToast('⏳ 驗證登入中', '正在從 WebView2 抓取登入憑證...');
         try {
-            const res = await window.pywebview.api.confirm_pipi_login();
+            // 先試 confirm_pipi_login（從登入視窗 + 主視窗抓取）
+            let res = null;
+            if (typeof window.pywebview.api.confirm_pipi_login === 'function') {
+                res = await window.pywebview.api.confirm_pipi_login();
+            }
+
+            // 若失敗，再試 get_pipi_cookies_from_main_win（只從主視窗 WebView2 抓取）
+            if (!res?.success && typeof window.pywebview.api.get_pipi_cookies_from_main_win === 'function') {
+                console.log('confirm_pipi_login 失敗，改用 get_pipi_cookies_from_main_win...');
+                res = await window.pywebview.api.get_pipi_cookies_from_main_win();
+            }
+
             if (res && res.success) {
                 updateLoginButtonState(true);
                 showInAppToast('🎉 驗證成功', '已成功驗證皮皮蘑菇登入，正在載入戰況！');
                 refreshRadarData();
             } else {
-                alert(res?.message || '尚未完成登入，請確認已在彈出視窗完成 Google 登入後重試');
+                const errMsg = res?.message || res?.error || '驗證失敗';
+                console.error('登入驗證失敗:', errMsg);
+                showInAppToast('❌ 驗證失敗', errMsg.substring(0, 80));
+                // 即便驗證失敗也嘗試重新整理（可能已部分成功）
+                setTimeout(refreshRadarData, 1000);
             }
         } catch (e) {
-            alert('驗證異常: ' + e);
+            console.error('驗證異常:', e);
+            showInAppToast('⚠️ 驗證異常', String(e).substring(0, 80));
+            setTimeout(refreshRadarData, 1000);
         }
     }
 
