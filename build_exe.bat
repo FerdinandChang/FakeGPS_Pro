@@ -34,6 +34,7 @@ python -m PyInstaller --noconsole --name "FakeGPS_Pro" ^
 echo 正在複製必要依賴檔案...
 copy /y wintun.dll dist\FakeGPS_Pro\ >nul
 copy /y manual.html dist\FakeGPS_Pro\ >nul
+copy /y FakeGPS_Pro.exe.config dist\FakeGPS_Pro\ >nul
 
 echo.
 echo =======================================================

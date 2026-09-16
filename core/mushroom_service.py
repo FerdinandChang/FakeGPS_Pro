@@ -20,8 +20,21 @@ from cryptography.hazmat.primitives import padding
 logger = logging.getLogger("MushroomRadar")
 
 
+class PipiAuthRequiredError(RuntimeError):
+    """皮皮蘑菇需要 Google 帳號授權登入"""
+    pass
+
+
+def _get_cookie_file_path() -> str:
+    if getattr(sys, 'frozen', False):
+        base_dir = os.path.dirname(sys.executable)
+    else:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_dir, "pipi_cookies.json")
+
+
 class PurePythonPipiClient:
-    """純 Python 實現皮皮蘑菇安全 API 客戶端 (免裝 Node.js，原生加解密)"""
+    """純 Python 實現皮皮蘑菇安全 API 客戶端 (免裝 Node.js，原生加解密，支援 Google 登入 Cookie)"""
     BASE_URL = "https://pipimushroom.com"
 
     def __init__(self):
@@ -31,6 +44,51 @@ class PurePythonPipiClient:
             "Referer": "https://pipimushroom.com/ppmushroom.aspx"
         })
         self.cached_session: Optional[Dict[str, Any]] = None
+        self.load_saved_cookies()
+
+    def load_saved_cookies(self):
+        """從本地 pipi_cookies.json 載入已登入的 Cookie"""
+        cookie_file = _get_cookie_file_path()
+        if os.path.exists(cookie_file):
+            try:
+                with open(cookie_file, "r", encoding="utf-8") as f:
+                    cookies = json.load(f)
+                    for k, v in cookies.items():
+                        self.session.cookies.set(k, v, domain="pipimushroom.com")
+                logger.info(f"已從 {cookie_file} 成功載入皮皮蘑菇登入憑證")
+            except Exception as e:
+                logger.warning(f"載入皮皮蘑菇 Cookie 失敗: {e}")
+
+    def save_cookies(self, cookie_dict: Dict[str, str]) -> bool:
+        """儲存登入 Cookie 到本地檔案並套用"""
+        cookie_file = _get_cookie_file_path()
+        try:
+            with open(cookie_file, "w", encoding="utf-8") as f:
+                json.dump(cookie_dict, f, ensure_ascii=False, indent=2)
+            for k, v in cookie_dict.items():
+                self.session.cookies.set(k, v, domain="pipimushroom.com")
+            self.cached_session = None
+            logger.info("已成功儲存並生效皮皮蘑菇登入憑證！")
+            return True
+        except Exception as e:
+            logger.error(f"儲存皮皮蘑菇 Cookie 失敗: {e}")
+            return False
+
+    def clear_cookies(self):
+        """清除本地登入憑證"""
+        cookie_file = _get_cookie_file_path()
+        if os.path.exists(cookie_file):
+            try:
+                os.remove(cookie_file)
+            except OSError:
+                pass
+        self.session.cookies.clear()
+        self.cached_session = None
+
+    def is_logged_in(self) -> bool:
+        """檢查本地是否存在登入憑證"""
+        cookie_file = _get_cookie_file_path()
+        return os.path.exists(cookie_file)
 
     def _get_api_session(self) -> Dict[str, Any]:
         now = time.time()
@@ -105,6 +163,25 @@ class PurePythonPipiClient:
         # 4. 發送請求
         post_url = f"{self.BASE_URL}/Handlers/PPMushroomData.ashx"
         resp = self.session.post(post_url, json=req_body, timeout=12)
+        if resp.status_code == 401:
+            try:
+                err_data = resp.json()
+                if "d" in err_data and "e" in err_data:
+                    resp_iv = base64.b64decode(err_data["d"])
+                    resp_cipher = base64.b64decode(err_data["e"])
+                    dec = Cipher(algorithms.AES(enc_key), modes.CBC(resp_iv)).decryptor()
+                    padded = dec.update(resp_cipher) + dec.finalize()
+                    plain = padding.PKCS7(128).unpadder().update(padded)
+                    parsed_err = json.loads(plain.decode("utf-8"))
+                    msg = parsed_err.get("error", "請先登入。")
+                    if "請先登入" in msg or not parsed_err.get("ok"):
+                        raise PipiAuthRequiredError("皮皮蘑菇官方已改版需 Google 帳號登入才能查看戰況，請點擊「🔑 登入皮皮」完成授權！")
+            except PipiAuthRequiredError:
+                raise
+            except Exception:
+                pass
+            raise PipiAuthRequiredError("皮皮蘑菇官方已改版需 Google 帳號登入才能查看戰況，請點擊「🔑 登入皮皮」完成授權！")
+
         if resp.status_code != 200:
             raise RuntimeError(f"查詢請求失敗: HTTP {resp.status_code}, 內容: {resp.text[:200]}")
 
@@ -154,15 +231,30 @@ class MushroomRadarService:
         try:
             data = self.client.query(params)
             return {"success": True, "data": data}
+        except PipiAuthRequiredError as auth_err:
+            logger.warning(f"皮皮蘑菇需授權登入: {auth_err}")
+            return {"success": False, "need_login": True, "error": str(auth_err)}
         except Exception as e:
             logger.error(f"查詢蘑菇資料失敗: {e}")
             try:
                 self.client.cached_session = None
                 data = self.client.query(params)
                 return {"success": True, "data": data}
+            except PipiAuthRequiredError as auth_err2:
+                logger.warning(f"皮皮蘑菇需授權登入: {auth_err2}")
+                return {"success": False, "need_login": True, "error": str(auth_err2)}
             except Exception as e2:
                 logger.error(f"重試查詢蘑菇資料失敗: {e2}")
                 return {"success": False, "error": str(e2)}
+
+    def save_cookies(self, cookie_dict: Dict[str, str]) -> bool:
+        return self.client.save_cookies(cookie_dict)
+
+    def clear_cookies(self):
+        self.client.clear_cookies()
+
+    def is_logged_in(self) -> bool:
+        return self.client.is_logged_in()
 
     def check_new_mushrooms(self, city: str = "", area: str = "", engagement: str = "under_five", level: str = "巨大", mushroom_type: str = "", sort: str = "updated", freshness: str = "60") -> Dict[str, Any]:
         """

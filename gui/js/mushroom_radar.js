@@ -386,9 +386,30 @@
                 // 更新地圖標記
                 updateMapMarkers(currentMushrooms);
             } else {
-                const errMsg = `<div class="radar-empty-msg">查詢失敗: ${res?.error || '請確認網路連線'}</div>`;
-                if (listContainer) listContainer.innerHTML = errMsg;
-                if (sideListContainer) sideListContainer.innerHTML = errMsg;
+                if (res && res.need_login) {
+                    updateLoginButtonState(false);
+                    const authCard = `
+                        <div class="radar-empty-msg" style="padding: 2rem 1rem; text-align: center;">
+                            <div style="font-size: 40px; margin-bottom: 12px;">🔑</div>
+                            <strong style="color: #60a5fa; font-size: 15px;">皮皮蘑菇官方已更新為需 Google 登入</strong>
+                            <div style="font-size: 12px; color: #94a3b8; margin: 8px 0 16px; line-height: 1.5;">官網安全性改版，請透過內嵌視窗授權登入一次即可恢復即時戰情與一鍵秒飛！</div>
+                            <button id="btn-login-prompt" class="btn btn-primary" style="margin: 0 auto; padding: 0.6rem 1.2rem; display: inline-flex; align-items: center; gap: 6px; background: #3b82f6; border: none; font-weight: bold; border-radius: 6px; cursor: pointer; color: white;">
+                                🚀 點此一鍵 Google 登入授權
+                            </button>
+                            <div style="margin-top: 14px;">
+                                <a href="javascript:void(0)" onclick="MushroomRadar.promptManualCookie()" style="font-size: 11px; color: #64748b; text-decoration: underline;">或手動貼入 Cookie</a>
+                            </div>
+                        </div>`;
+                    if (listContainer) listContainer.innerHTML = authCard;
+                    if (sideListContainer) sideListContainer.innerHTML = authCard;
+                    document.getElementById('btn-login-prompt')?.addEventListener('click', () => {
+                        triggerPipiLogin();
+                    });
+                } else {
+                    const errMsg = `<div class="radar-empty-msg">查詢失敗: ${res?.error || '請確認網路連線'}</div>`;
+                    if (listContainer) listContainer.innerHTML = errMsg;
+                    if (sideListContainer) sideListContainer.innerHTML = errMsg;
+                }
             }
         } catch (err) {
             console.error('雷達更新錯誤:', err);
@@ -685,6 +706,15 @@
             });
         }
 
+        // 登入皮皮按鈕事件綁定
+        const loginBtn = document.getElementById('radar-btn-login');
+        if (loginBtn) {
+            loginBtn.addEventListener('click', () => {
+                triggerPipiLogin();
+            });
+        }
+        checkPipiLoginStatus();
+
         // 首次啟動輪詢
         setupPolling();
         
@@ -693,6 +723,76 @@
             refreshRadarData();
         }, 1000);
     }
+
+    // 更新登入按鈕外觀狀態
+    function updateLoginButtonState(isLoggedIn) {
+        const loginBtn = document.getElementById('radar-btn-login');
+        const icon = document.getElementById('pipi-login-icon');
+        const text = document.getElementById('pipi-login-text');
+        if (!loginBtn) return;
+
+        if (isLoggedIn) {
+            loginBtn.style.background = '#10b981';
+            loginBtn.title = '皮皮蘑菇帳號已授權登入（點擊可切換或手動更新 Cookie）';
+            if (icon) icon.textContent = '✅';
+            if (text) text.textContent = '已登入';
+        } else {
+            loginBtn.style.background = '#3b82f6';
+            loginBtn.title = '使用 Google 帳號授權登入皮皮蘑菇';
+            if (icon) icon.textContent = '🔑';
+            if (text) text.textContent = '登入皮皮';
+        }
+    }
+
+    // 檢查登入憑證狀態
+    async function checkPipiLoginStatus() {
+        if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.get_pipi_auth_status === 'function') {
+            try {
+                const res = await window.pywebview.api.get_pipi_auth_status();
+                updateLoginButtonState(res && res.is_logged_in);
+            } catch (e) {
+                console.warn('檢查皮皮蘑菇登入狀態失敗:', e);
+            }
+        }
+    }
+
+    // 觸發皮皮蘑菇 Google 登入流程
+    function triggerPipiLogin() {
+        if (!window.pywebview || !window.pywebview.api || typeof window.pywebview.api.open_pipi_login !== 'function') {
+            alert('系統未就緒，請稍候重試');
+            return;
+        }
+        showInAppToast('🔑 開啟登入中', '請在彈出的視窗中完成 Google 帳號授權登入...');
+        window.pywebview.api.open_pipi_login().then(res => {
+            if (!res.success) {
+                alert('開啟登入視窗失敗: ' + (res.message || '未知錯誤'));
+            }
+        });
+    }
+
+    // 手動貼入 Cookie 支援（備用）
+    function promptManualCookie() {
+        const val = prompt('請貼上從瀏覽器複製的皮皮蘑菇 Cookie 字串 (格式: ASP.NET_SessionId=...; pm_site_session=...):');
+        if (!val) return;
+        if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_pipi_cookie_manual === 'function') {
+            window.pywebview.api.set_pipi_cookie_manual(val).then(res => {
+                if (res.success) {
+                    showInAppToast('✅ Cookie 儲存成功', '已套用皮皮蘑菇登入憑證！');
+                    updateLoginButtonState(true);
+                    refreshRadarData();
+                } else {
+                    alert('儲存失敗: ' + (res.message || '格式不正確'));
+                }
+            });
+        }
+    }
+
+    // 全域回呼：當登入視窗成功捕獲 Cookie 時由後端自動調用
+    window.onPipiLoginSuccess = function() {
+        updateLoginButtonState(true);
+        showInAppToast('🎉 登入授權成功', '已成功取得皮皮蘑菇認證憑證，正在載入最新戰況！');
+        refreshRadarData();
+    };
 
     // DOM Ready
     window.addEventListener('DOMContentLoaded', () => {
@@ -736,6 +836,8 @@
         refresh: refreshRadarData,
         playChime: playChime,
         sendDesktopNotification: sendDesktopNotification,
+        login: triggerPipiLogin,
+        promptManualCookie: promptManualCookie,
         teleport: function(lat, lng, encodedName) {
             const name = decodeURIComponent(encodedName || '');
             teleportToMushroom(lat, lng, name);

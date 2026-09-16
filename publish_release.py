@@ -13,33 +13,33 @@ from datetime import datetime
 sys.stdout.reconfigure(encoding='utf-8')
 
 REPO = "FerdinandChang/FakeGPS_Pro"
-VERSION = "v1.2.4"
-RELEASE_TITLE = "FakeGPS Pro v1.2.4 - ⚡ 徹底修復 GPS 覆蓋失效與 DVT 互斥安全鎖架構重大更新"
+VERSION = "v1.2.5"
+RELEASE_TITLE = "FakeGPS Pro v1.2.5 - 🍄 皮皮蘑菇 Google 登入支援與 Windows 免手動解鎖永久根治"
 
-RELEASE_BODY = """# FakeGPS Pro v1.2.4 - ⚡ 徹底修復 GPS 覆蓋失效與 DVT 互斥安全鎖架構重大更新
+RELEASE_BODY = """# FakeGPS Pro v1.2.5 - 🍄 皮皮蘑菇 Google 登入支援與 Windows 免手動解鎖重大更新
 
-本版本針對 v1.2.3 在部分環境下發生的「覆蓋 GPS 無法正常運作」問題進行底層架構修復與安全防禦全面升級：
+本版本針對皮皮蘑菇官方網站（pipimushroom.com）近期安全性改版，以及 Windows 下載解壓縮後的組件鎖定問題進行底層重大升級：
 
 ## 🌟 重點修復與更新內容
 
-### 1. 🛡️ 全面導入 `_io_lock` 執行緒互斥安全鎖 (Thread-Safe DVT Channel)
-* **徹底杜絕並發搶佔衝突**：主執行緒（瞬移、一鍵秒飛、搖桿移動、循跡路線）與背景保活執行緒全數受到底層互斥鎖嚴密保護，保證 USB Mux 與 DVT Socket 封包時序 100% 正確，**徹底根治 v1.2.3 座標覆蓋失效問題**！
+### 1. 🔑 支援「皮皮蘑菇 Google 授權登入」（因應官網強制登入改版）
+* **一鍵彈窗授權**：皮皮蘑菇官方自 9/15～9/16 起將戰況列表與地圖改為強制 Google 登入，未登入者一律回應 HTTP 401。新版在雷達介面新增「🔑 登入皮皮」按鈕，點擊彈出內嵌安全視窗即可快速完成 Google 授權！
+* **自動提取與持久化憑證**：授權成功後自動提取 Session 認證憑證並保存在本地，**重開軟體免重複登入**！
+* **無縫恢復即時戰況與一鍵秒飛**：帶憑證查詢徹底解決 HTTP 401 錯誤，蘑菇戰況更新、定時監控與一鍵秒飛全數恢復正常運作。
 
-### 2. 🌊 升級「非阻塞讓位保活機制 (Non-blocking Cooperative Daemon)」
-* **操作零衝突、使用者絕對優先**：背景心跳守護者改採非阻塞鎖模式（`acquire(blocking=False)`）。當使用者點擊瞬移或推動搖桿時，心跳執行緒**立即主動讓位略過**，絕不搶佔 DVT 通道與 CPU 資源。
-* **溫和維持定位活躍**：由原本每 1.5 秒激進轟炸調整為閒置滿 5 秒才溫和補發座標，既有效防止 Windows USB 節能休眠（Selective Suspend）與 iOS CoreLocation 回彈，又確保系統極致輕盈穩定。
+### 2. 🛡️ Windows 端「免手動解除鎖定」開發者端永久根治方案
+* **附帶 `FakeGPS_Pro.exe.config`**：啟用 `<loadFromRemoteSources enabled="true"/>`，強制 .NET CLR 允許直接載入帶有網路標記的組件。
+* **啟動時自動 Self-Unblock**：主程式啟動瞬間自動遞迴清除目錄下所有檔案的 `:Zone.Identifier`（Mark of the Web）。
+* **雙擊即開零報錯**：未來任何使用者從 GitHub 下載 ZIP，解壓縮後直接雙擊執行即可秒開，**徹底終結 `Python.Runtime.dll` 解析失敗問題**！
 
-### 3. 🔒 徹底移除背景自作主張重連 (Prevent Cascade Reconnection)
-* 徹底移除心跳逾時後在背景自動調用 `connect()` 的雪崩機制，杜絕連線通道被強行重置導致裝置斷線的致命問題。
-
-### 4. 🍄 完整繼承 v1.2.2 蘑菇戰情強化
-* 包含全尺寸等級追蹤、一鍵秒飛真實瞬移、官方 14 種種類代碼對齊、最近一小時即時更新與官方 5 大排序方式同步。
+### 3. ⚡ 延續 v1.2.4 的 DVT 執行緒互斥安全鎖
+* 具備完整 `_io_lock` 互斥鎖與非阻塞讓位保活機制，保證手機 GPS 覆蓋 100% 穩定，絕不跳回真實地點。
 
 ---
 
 ## 📦 下載與安裝說明
 
-* **Windows 使用者**：下載 `FakeGPS_Pro_Windows_v1.2.4.zip`，解壓縮後執行 `FakeGPS_Pro.exe` 即可（亦可直接在軟體內點「🔄 檢查更新」一鍵線上自動升級！）。
+* **Windows 使用者**：下載 `FakeGPS_Pro_Windows_v1.2.5.zip`，解壓縮後直接雙擊 `FakeGPS_Pro.exe` 即可開啟（免手動右鍵解除鎖定！）。
 * **Mac 使用者**：下載對應晶片的 DMG 檔案（`FakeGPS_Pro-AppleSilicon.dmg` 適用 M1/M2/M3/M4；`FakeGPS_Pro-Intel.dmg` 適用舊款 Intel Mac），雙擊開啟即可使用。
 """
 
@@ -103,6 +103,8 @@ def main():
         shutil.copy("d:/FakeGPS/run_radar_tray.bat", dist_dir)
     if os.path.exists("d:/FakeGPS/mushroom_radar_tray.py"):
         shutil.copy("d:/FakeGPS/mushroom_radar_tray.py", dist_dir)
+    if os.path.exists("d:/FakeGPS/FakeGPS_Pro.exe.config"):
+        shutil.copy("d:/FakeGPS/FakeGPS_Pro.exe.config", dist_dir)
     
     # 2. 建立 ZIP 包
     zip_ver = os.path.join("d:/FakeGPS", "dist", f"FakeGPS_Pro_Windows_{VERSION}.zip")
