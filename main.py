@@ -274,66 +274,35 @@ class JsApi:
             return {"success": False, "message": f"解析失敗: {e}"}
 
     def _safe_get_cookies_from_win(self, win) -> Dict[str, str]:
-        """線程安全地從 pywebview 視窗取得 Cookie（不會造成死鎖）"""
+        """線程安全地從視窗取得 Cookie（絕不死鎖）"""
         cookie_dict = {}
         if not win:
             return cookie_dict
 
-        # 最優先：直接呼叫 BrowserView.get_cookies()
-        # 這個方法內建 Invoke + Semaphore，任何執行緒都安全，且能取到 HttpOnly Cookie
-        if sys.platform == "win32":
-            try:
-                import webview.platforms.winforms as wf
-                inst = wf.BrowserView.instances.get(win.uid)
-                if inst and hasattr(inst, 'get_cookies'):
-                    cookies = inst.get_cookies() or []
-                    for c in cookies:
-                        name = getattr(c, 'name', None) or (c.get('name') if isinstance(c, dict) else None)
-                        value = getattr(c, 'value', None) or (c.get('value') if isinstance(c, dict) else None)
-                        if name and value:
-                            cookie_dict[name] = value
-                    if cookie_dict:
-                        logger.info(f"BrowserView.get_cookies() 抓到 {len(cookie_dict)} 個: {list(cookie_dict.keys())}")
-            except Exception as e:
-                logger.debug(f"BrowserView.get_cookies() 失敗: {e}")
+        # 1. 透過官方 win.get_cookies()
+        try:
+            cookies = win.get_cookies() or []
+            for c in cookies:
+                name = getattr(c, 'name', None) or (c.get('name') if isinstance(c, dict) else None)
+                value = getattr(c, 'value', None) or (c.get('value') if isinstance(c, dict) else None)
+                if name and value:
+                    cookie_dict[name] = value
+        except Exception as e:
+            logger.debug(f"win.get_cookies() 失敗: {e}")
 
-        # 備用：pywebview Window.get_cookies()（可能受 @_loaded_call 限制）
-        if not cookie_dict:
-            try:
-                cookies = win.get_cookies() or []
-                for c in cookies:
-                    name = getattr(c, 'name', None) or (c.get('name') if isinstance(c, dict) else None)
-                    value = getattr(c, 'value', None) or (c.get('value') if isinstance(c, dict) else None)
-                    if name and value:
-                        cookie_dict[name] = value
-            except Exception as e:
-                logger.debug(f"win.get_cookies() 失敗: {e}")
+        # 2. 透過 evaluate_js 讀取 document.cookie 作為補充
+        try:
+            raw_cookie = win.evaluate_js("document.cookie")
+            if raw_cookie and isinstance(raw_cookie, str):
+                for item in raw_cookie.split(";"):
+                    if "=" in item:
+                        k, v = item.strip().split("=", 1)
+                        if k and v and k not in cookie_dict:
+                            cookie_dict[k] = v
+        except Exception as e:
+            logger.debug(f"win.evaluate_js() 失敗: {e}")
 
         return cookie_dict
-
-    def get_pipi_cookies_from_main_win(self) -> Dict[str, Any]:
-        """從主視窗 WebView2 抓取皮皮蘑菇 Cookie（所有 WebView2 共用 Cookie 儲存）"""
-        if not (self.window_holder and self.window_holder[0]):
-            return {"success": False, "error": "主視窗未就緒"}
-
-        main_win = self.window_holder[0]
-        cookie_dict = self._safe_get_cookies_from_win(main_win)
-
-        logger.info(f"主視窗抓取到的 Cookie: {list(cookie_dict.keys())}")
-
-        if not cookie_dict:
-            return {"success": False, "error": "未抓到任何 Cookie，請確認已在登入視窗完成 Google 授權"}
-
-        has_auth = "ASP.NET_SessionId" in cookie_dict or "pm_site_session" in cookie_dict
-        if not has_auth:
-            return {"success": False, "error": f"未找到認證 Cookie (抓到: {list(cookie_dict.keys())})，請先完成 Google 登入"}
-
-        self.mushroom_radar.save_cookies(cookie_dict)
-        test_res = self.mushroom_radar.query_mushrooms({"mode": "list", "page": 1})
-        if test_res.get("success"):
-            return {"success": True, "message": f"登入成功！抓到 {len(cookie_dict)} 個 Cookie"}
-        else:
-            return {"success": False, "error": test_res.get("error", "Cookie 已儲存但 API 驗證失敗")}
 
     def open_pipi_login(self) -> Dict[str, Any]:
         """開啟內嵌視窗進行 Google 授權登入皮皮蘑菇"""
@@ -381,12 +350,8 @@ class JsApi:
                         )
 
                         if is_on_pipi_site:
-                            # 從登入視窗抓 Cookie（BrowserView.get_cookies 線程安全）
+                            # 從登入視窗抓 Cookie
                             cookie_dict = self._safe_get_cookies_from_win(login_win)
-                            if not cookie_dict:
-                                # 備用：從主視窗抓（同一用戶資料目錄共用）
-                                if self.window_holder and self.window_holder[0]:
-                                    cookie_dict = self._safe_get_cookies_from_win(self.window_holder[0])
 
                             if cookie_dict:
                                 self.mushroom_radar.save_cookies(cookie_dict)
@@ -418,19 +383,12 @@ class JsApi:
             return {"success": False, "message": f"開啟登入視窗失敗: {e}"}
 
     def confirm_pipi_login(self) -> Dict[str, Any]:
-        """手動確認登入：從所有可用 WebView2 視窗抓取 Cookie 並驗證"""
+        """手動確認登入：從登入視窗抓取 Cookie 並驗證（絕不操作主視窗，0% 死鎖）"""
         cookie_dict = {}
 
-        # 1. 先試登入視窗
+        # 只從獨立的登入子視窗抓取，安全可靠
         if hasattr(self, '_login_win') and self._login_win:
             cookie_dict = self._safe_get_cookies_from_win(self._login_win)
-
-        # 2. 不管登入視窗有沒有，再試主視窗（關鍵！WebView2 共用 Cookie 儲存）
-        if self.window_holder and self.window_holder[0]:
-            main_cookies = self._safe_get_cookies_from_win(self.window_holder[0])
-            for k, v in main_cookies.items():
-                if k not in cookie_dict:
-                    cookie_dict[k] = v
 
         logger.info(f"confirm_pipi_login 抓到 Cookie: {list(cookie_dict.keys())}")
 
@@ -453,7 +411,7 @@ class JsApi:
             return {"success": True, "message": "登入成功！"}
         else:
             err = test_res.get("error", "驗證未通過")
-            cookie_info = f"（已抓取 Cookie: {list(cookie_dict.keys()) if cookie_dict else '無'}）"
+            cookie_info = f"（已抓取: {list(cookie_dict.keys()) if cookie_dict else '無'}）"
             return {"success": False, "message": f"{err} {cookie_info}"}
 
     def start_auto_update(self, download_url: str) -> Dict[str, Any]:

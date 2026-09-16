@@ -436,8 +436,17 @@
             if (countBadge) countBadge.textContent = '連線異常';
             const errMsg = `<div class="radar-empty-msg" style="padding: 1.5rem; text-align: center;">
                 <div style="color: #f87171; font-weight: bold; margin-bottom: 6px;">⚠️ 連線逾時或異常</div>
-                <div style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">皮皮蘑菇資料庫連線回應逾時，可點擊重試</div>
-                <button onclick="MushroomRadar.refresh()" class="btn btn-secondary" style="padding: 0.4rem 1rem; font-size: 12px; border-radius: 6px; cursor: pointer;">🔄 立即重試</button>
+                <div style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">若您已在彈出視窗登入 Google，請直接點擊下方驗證：</div>
+                <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+                    <button onclick="MushroomRadar.confirmLogin()" class="btn btn-primary" style="padding: 0.5rem 1.2rem; background: #10b981; border: none; font-weight: bold; border-radius: 6px; cursor: pointer; color: white; font-size: 13px;">✅ 我已完成登入，立即刷新</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="MushroomRadar.refresh()" class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 12px; border-radius: 6px; cursor: pointer;">🔄 立即重試</button>
+                        <button onclick="MushroomRadar.login()" class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 12px; border-radius: 6px; cursor: pointer;">🔑 開啟登入視窗</button>
+                    </div>
+                </div>
+                <div style="margin-top: 12px;">
+                    <a href="javascript:void(0)" onclick="MushroomRadar.promptManualCookie()" style="font-size: 11px; color: #64748b; text-decoration: underline;">或手動貼入 Cookie</a>
+                </div>
             </div>`;
             if (listContainer) listContainer.innerHTML = errMsg;
             if (sideListContainer) sideListContainer.innerHTML = errMsg;
@@ -743,6 +752,12 @@
                     // 直接開啟登入視窗（用戶需完成登入後點「✅ 我已完成登入」）
                     triggerPipiLogin();
                 }
+            });
+        }
+        const confirmBtn = document.getElementById('radar-btn-confirm-login');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                confirmPipiLogin();
             });
         }
         checkPipiLoginStatus();
