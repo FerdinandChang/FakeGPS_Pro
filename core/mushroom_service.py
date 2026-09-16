@@ -97,12 +97,9 @@ class PurePythonPipiClient:
             if expires - now > 60:
                 return self.cached_session
 
-        # 1. 取得主頁 Cookie
-        self.session.get(f"{self.BASE_URL}/ppmushroom.aspx", timeout=10)
-
-        # 2. 握手取得安全 Token 與金鑰
+        # 握手取得安全 Token 與金鑰 (直接向 ApiSession 請求，零延遲)
         url = f"{self.BASE_URL}/ApiSession.ashx"
-        resp = self.session.get(url, timeout=10, headers={"Accept": "application/json"})
+        resp = self.session.get(url, timeout=8, headers={"Accept": "application/json"})
         if resp.status_code != 200:
             raise RuntimeError(f"取得 ApiSession 失敗: HTTP {resp.status_code}")
 

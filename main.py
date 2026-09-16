@@ -273,6 +273,52 @@ class JsApi:
         except Exception as e:
             return {"success": False, "message": f"解析失敗: {e}"}
 
+    def _extract_pipi_cookies(self, win) -> Dict[str, str]:
+        """三重保障從視窗中獲取皮皮蘑菇的 Cookie (含 HttpOnly)"""
+        cookie_dict = {}
+        if not win:
+            return cookie_dict
+
+        # 1. 原生 pywebview get_cookies()
+        try:
+            cookies = win.get_cookies() or []
+            for c in cookies:
+                name = getattr(c, 'name', None) or (c.get('name') if isinstance(c, dict) else None)
+                value = getattr(c, 'value', None) or (c.get('value') if isinstance(c, dict) else None)
+                if name and value:
+                    cookie_dict[name] = value
+        except Exception as e:
+            logger.debug(f"win.get_cookies() 失敗: {e}")
+
+        # 2. Windows 平台：直接從 CoreWebView2.CookieManager 抓取 pipimushroom.com 網域全量 Cookies (含 HttpOnly)
+        if sys.platform == "win32":
+            try:
+                import webview.platforms.winforms as wf
+                inst = wf.BrowserView.instances.get(win.uid)
+                if inst and hasattr(inst, 'browser') and inst.browser and inst.browser.webview.CoreWebView2:
+                    mgr = inst.browser.webview.CoreWebView2.CookieManager
+                    t = mgr.GetCookiesAsync("https://pipimushroom.com")
+                    t.Wait(1500)
+                    if t.Result:
+                        for c in t.Result:
+                            cookie_dict[c.Name] = c.Value
+            except Exception as e:
+                logger.debug(f"CoreWebView2 直接抓取 Cookie 失敗: {e}")
+
+        # 3. 透過 evaluate_js 讀取 document.cookie 作為輔助
+        try:
+            raw_cookie = win.evaluate_js("document.cookie")
+            if raw_cookie and isinstance(raw_cookie, str):
+                for item in raw_cookie.split(";"):
+                    if "=" in item:
+                        k, v = item.strip().split("=", 1)
+                        if k and v and k not in cookie_dict:
+                            cookie_dict[k] = v
+        except Exception as e:
+            logger.debug(f"evaluate_js 讀取 cookie 失敗: {e}")
+
+        return cookie_dict
+
     def open_pipi_login(self) -> Dict[str, Any]:
         """開啟內嵌視窗進行 Google 授權登入皮皮蘑菇"""
         login_url = "https://pipimushroom.com/login.aspx?ReturnUrl=ppmushroom.aspx"
@@ -310,24 +356,14 @@ class JsApi:
                         except Exception:
                             pass
 
-                        cookies = []
-                        try:
-                            cookies = login_win.get_cookies()
-                        except Exception:
-                            pass
-
-                        cookie_dict = {}
-                        for c in cookies:
-                            name = getattr(c, 'name', None) or (c.get('name') if isinstance(c, dict) else None)
-                            value = getattr(c, 'value', None) or (c.get('value') if isinstance(c, dict) else None)
-                            if name and value:
-                                cookie_dict[name] = value
+                        cookie_dict = self._extract_pipi_cookies(login_win)
 
                         is_on_pipi_site = ("pipimushroom.com" in cur_url) and ("login.aspx" not in cur_url) and ("GoogleAuth.ashx" not in cur_url) and ("accounts.google.com" not in cur_url)
                         has_auth_cookies = ("ASP.NET_SessionId" in cookie_dict) or ("pm_site_session" in cookie_dict)
 
                         if is_on_pipi_site or (has_auth_cookies and len(cookie_dict) >= 2):
-                            self.mushroom_radar.save_cookies(cookie_dict)
+                            if cookie_dict:
+                                self.mushroom_radar.save_cookies(cookie_dict)
                             test_res = self.mushroom_radar.query_mushrooms({"mode": "list", "page": 1})
                             if test_res.get("success"):
                                 logger.info("驗證成功！已成功取得皮皮蘑菇有效授權，自動關閉登入視窗！")
@@ -358,15 +394,7 @@ class JsApi:
         """手動主動觸發捕獲登入視窗的 Cookie 並驗證"""
         cookie_dict = {}
         if hasattr(self, '_login_win') and self._login_win:
-            try:
-                cookies = self._login_win.get_cookies()
-                for c in cookies:
-                    name = getattr(c, 'name', None) or (c.get('name') if isinstance(c, dict) else None)
-                    value = getattr(c, 'value', None) or (c.get('value') if isinstance(c, dict) else None)
-                    if name and value:
-                        cookie_dict[name] = value
-            except Exception as e:
-                logger.warning(f"讀取登入視窗 Cookie 失敗: {e}")
+            cookie_dict = self._extract_pipi_cookies(self._login_win)
 
         if cookie_dict:
             self.mushroom_radar.save_cookies(cookie_dict)

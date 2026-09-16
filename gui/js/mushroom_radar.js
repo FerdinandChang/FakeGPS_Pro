@@ -329,7 +329,11 @@
 
     // 刷新蘑菇雷達資料
     async function refreshRadarData() {
-        if (isQuerying || !window.pywebview || !window.pywebview.api) return;
+        if (isQuerying) return;
+        if (!window.pywebview || !window.pywebview.api || typeof window.pywebview.api.query_giant_mushrooms !== 'function') {
+            setTimeout(refreshRadarData, 300);
+            return;
+        }
         isQuerying = true;
         
         const refreshBtn = document.getElementById('radar-btn-refresh');
@@ -340,6 +344,9 @@
         const sideBadge = document.getElementById('side-radar-badge');
         
         if (refreshBtn) refreshBtn.classList.add('rotating');
+        if (countBadge && countBadge.textContent === '正在載入...') {
+            countBadge.textContent = '查詢中...';
+        }
         
         const city = document.getElementById('radar-filter-city')?.value || '';
         const area = document.getElementById('radar-filter-area')?.value || '';
@@ -350,7 +357,11 @@
         const sort = document.getElementById('radar-filter-sort')?.value || 'updated';
 
         try {
-            const res = await window.pywebview.api.query_giant_mushrooms(city, area, engagement, level, mushroomType, sort, freshness);
+            // 增加 10 秒硬性超時防禦，防止 Promise 永遠 pending
+            const queryTask = window.pywebview.api.query_giant_mushrooms(city, area, engagement, level, mushroomType, sort, freshness);
+            const timeoutTask = new Promise((_, reject) => setTimeout(() => reject(new Error('查詢逾時 (10s)')), 10000));
+            const res = await Promise.race([queryTask, timeoutTask]);
+
             if (res && res.success) {
                 currentMushrooms = res.items || [];
                 const newItems = res.new_items || [];
@@ -386,6 +397,7 @@
                 // 更新地圖標記
                 updateMapMarkers(currentMushrooms);
             } else {
+                if (countBadge) countBadge.textContent = '需登入';
                 if (res && res.need_login) {
                     updateLoginButtonState(false);
                     const authCard = `
@@ -421,7 +433,12 @@
             }
         } catch (err) {
             console.error('雷達更新錯誤:', err);
-            const errMsg = `<div class="radar-empty-msg">連線異常，將於下週期重試</div>`;
+            if (countBadge) countBadge.textContent = '連線異常';
+            const errMsg = `<div class="radar-empty-msg" style="padding: 1.5rem; text-align: center;">
+                <div style="color: #f87171; font-weight: bold; margin-bottom: 6px;">⚠️ 連線逾時或異常</div>
+                <div style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">皮皮蘑菇資料庫連線回應逾時，可點擊重試</div>
+                <button onclick="MushroomRadar.refresh()" class="btn btn-secondary" style="padding: 0.4rem 1rem; font-size: 12px; border-radius: 6px; cursor: pointer;">🔄 立即重試</button>
+            </div>`;
             if (listContainer) listContainer.innerHTML = errMsg;
             if (sideListContainer) sideListContainer.innerHTML = errMsg;
         } finally {
