@@ -274,23 +274,34 @@ class JsApi:
             return {"success": False, "message": f"解析失敗: {e}"}
 
     def _safe_get_cookies_from_win(self, win) -> Dict[str, str]:
-        """線程安全地從視窗取得 Cookie（絕不死鎖）"""
+        """線程安全地從視窗取得 Cookie（正確解析 SimpleCookie 物件）"""
         cookie_dict = {}
         if not win:
             return cookie_dict
 
-        # 1. 透過官方 win.get_cookies()
         try:
             cookies = win.get_cookies() or []
             for c in cookies:
-                name = getattr(c, 'name', None) or (c.get('name') if isinstance(c, dict) else None)
-                value = getattr(c, 'value', None) or (c.get('value') if isinstance(c, dict) else None)
-                if name and value:
-                    cookie_dict[name] = value
+                # pywebview 在 Windows 回傳的是 http.cookies.SimpleCookie 物件
+                if hasattr(c, 'items'):
+                    for k, morsel in c.items():
+                        cookie_dict[k] = morsel.value if hasattr(morsel, 'value') else str(morsel)
+                elif isinstance(c, dict):
+                    name = c.get('name')
+                    val = c.get('value')
+                    if name and val:
+                        cookie_dict[name] = val
+                else:
+                    name = getattr(c, 'name', None)
+                    val = getattr(c, 'value', None)
+                    if name and val:
+                        cookie_dict[name] = val
+            if cookie_dict:
+                logger.info(f"成功從視窗解析出 {len(cookie_dict)} 個 Cookie: {list(cookie_dict.keys())}")
         except Exception as e:
-            logger.debug(f"win.get_cookies() 失敗: {e}")
+            logger.debug(f"win.get_cookies() 解析失敗: {e}")
 
-        # 2. 透過 evaluate_js 讀取 document.cookie 作為補充
+        # 輔助：document.cookie 補強
         try:
             raw_cookie = win.evaluate_js("document.cookie")
             if raw_cookie and isinstance(raw_cookie, str):

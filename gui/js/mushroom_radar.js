@@ -748,16 +748,16 @@
                 if (text.includes('已登入')) {
                     const act = confirm('皮皮蘑菇目前已處於登入狀態。\n\n點選【確定】重新開啟登入視窗切換帳號，點選【取消】維持現狀。');
                     if (act) triggerPipiLogin();
+                } else if (text.includes('點此驗證')) {
+                    confirmPipiLogin();
                 } else {
-                    // 直接開啟登入視窗（用戶需完成登入後點「✅ 我已完成登入」）
                     triggerPipiLogin();
+                    loginBtn.style.background = '#10b981';
+                    const icon = document.getElementById('pipi-login-icon');
+                    const textEl = document.getElementById('pipi-login-text');
+                    if (icon) icon.textContent = '✅';
+                    if (textEl) textEl.textContent = '點此驗證';
                 }
-            });
-        }
-        const confirmBtn = document.getElementById('radar-btn-confirm-login');
-        if (confirmBtn) {
-            confirmBtn.addEventListener('click', () => {
-                confirmPipiLogin();
             });
         }
         checkPipiLoginStatus();

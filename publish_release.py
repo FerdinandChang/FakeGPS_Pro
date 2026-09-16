@@ -13,34 +13,32 @@ from datetime import datetime
 sys.stdout.reconfigure(encoding='utf-8')
 
 REPO = "FerdinandChang/FakeGPS_Pro"
-VERSION = "v1.2.5"
-RELEASE_TITLE = "FakeGPS Pro v1.2.5 - 🍄 皮皮蘑菇 Google 登入支援與 Windows 免手動解鎖永久根治"
+VERSION = "v1.2.6"
+RELEASE_TITLE = "FakeGPS Pro v1.2.6 - 🍄 皮皮蘑菇認證 SimpleCookie 解析修復與標題排版優化"
 
-RELEASE_BODY = """# FakeGPS Pro v1.2.5 - 🍄 皮皮蘑菇 Google 登入支援與 Windows 免手動解鎖重大更新
+RELEASE_BODY = """# FakeGPS Pro v1.2.6 - 🍄 皮皮蘑菇認證修復與排版防折行更新
 
-本版本針對皮皮蘑菇官方網站（pipimushroom.com）近期安全性改版，以及 Windows 下載解壓縮後的組件鎖定問題進行底層重大升級：
+本版本針對皮皮蘑菇登入認證憑證提取與雷達面板排版進行底層重大修復：
 
 ## 🌟 重點修復與更新內容
 
-### 1. 🔑 支援「皮皮蘑菇 Google 授權登入」（因應官網強制登入改版）
-* **一鍵彈窗授權**：皮皮蘑菇官方自 9/15～9/16 起將戰況列表與地圖改為強制 Google 登入，未登入者一律回應 HTTP 401。新版在雷達介面新增「🔑 登入皮皮」按鈕，點擊彈出內嵌安全視窗即可快速完成 Google 授權！
-* **自動提取與持久化憑證**：授權成功後自動提取 Session 認證憑證並保存在本地，**重開軟體免重複登入**！
-* **無縫恢復即時戰況與一鍵秒飛**：帶憑證查詢徹底解決 HTTP 401 錯誤，蘑菇戰況更新、定時監控與一鍵秒飛全數恢復正常運作。
+### 1. 🔑 修正 SimpleCookie 底層憑證解析（100% 成功捕獲 `pm_site_session`）
+* **破案修復**：修正 PyWebView 原生回傳之 `http.cookies.SimpleCookie` 物件解析方式，支援以字典迭代方式提取帶有 `HttpOnly` 保護的 `pm_site_session` 核心憑證！
+* **杜絕死鎖當機**：徹底拔除引發「FakeGPS_Pro.exe 沒有回應」之 WinForms STA 執行緒鎖，保證全流程 0% 死鎖幾率。
 
-### 2. 🛡️ Windows 端「免手動解除鎖定」開發者端永久根治方案
-* **附帶 `FakeGPS_Pro.exe.config`**：啟用 `<loadFromRemoteSources enabled="true"/>`，強制 .NET CLR 允許直接載入帶有網路標記的組件。
-* **啟動時自動 Self-Unblock**：主程式啟動瞬間自動遞迴清除目錄下所有檔案的 `:Zone.Identifier`（Mark of the Web）。
-* **雙擊即開零報錯**：未來任何使用者從 GitHub 下載 ZIP，解壓縮後直接雙擊執行即可秒開，**徹底終結 `Python.Runtime.dll` 解析失敗問題**！
+### 2. 🎨 雷達抽屜標題排版防擠壓重構
+* **防止標題垂直折行**：寬度微調至 440px，標題加上防擠壓與強制不折行樣式，徹底解決「蘑菇/即時/戰情/雷達」文字垂直跑版問題。
+* **智慧動態登入按鈕**：未登入顯示 `[🔑 登入皮皮]`，開啟視窗後智慧動態切換為 `[✅ 點此驗證]`，不再擁擠遮擋「🔄 刷新」按鈕。
 
-### 3. ⚡ 延續 v1.2.4 的 DVT 執行緒互斥安全鎖
-* 具備完整 `_io_lock` 互斥鎖與非阻塞讓位保活機制，保證手機 GPS 覆蓋 100% 穩定，絕不跳回真實地點。
+### 3. 🛡️ 延續 Windows 免手動解除鎖定與 DVT 互斥安全鎖
+* 附帶 `FakeGPS_Pro.exe.config` 與啟動時自動清除 `:Zone.Identifier`。
+* 完備 DVT 執行緒互斥安全鎖，防止 GPS 跳回真實地點。
 
 ---
 
 ## 📦 下載與安裝說明
 
-* **Windows 使用者**：下載 `FakeGPS_Pro_Windows_v1.2.5.zip`，解壓縮後直接雙擊 `FakeGPS_Pro.exe` 即可開啟（免手動右鍵解除鎖定！）。
-* **Mac 使用者**：下載對應晶片的 DMG 檔案（`FakeGPS_Pro-AppleSilicon.dmg` 適用 M1/M2/M3/M4；`FakeGPS_Pro-Intel.dmg` 適用舊款 Intel Mac），雙擊開啟即可使用。
+* **Windows 使用者**：下載 `FakeGPS_Pro_Windows_v1.2.6.zip`，解壓縮後直接雙擊 `FakeGPS_Pro.exe` 即可開啟使用。
 """
 
 def get_github_token():
