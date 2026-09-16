@@ -273,32 +273,31 @@ class JsApi:
         except Exception as e:
             return {"success": False, "message": f"解析失敗: {e}"}
 
-    def _extract_pipi_cookies_from_webview_win(self, win) -> Dict[str, str]:
-        """從 WebView2 實例的 CookieManager 直接抓取 pipimushroom.com 全量 Cookie（含 HttpOnly）"""
+    def _safe_get_cookies_from_win(self, win) -> Dict[str, str]:
+        """線程安全地從 pywebview 視窗取得 Cookie（不會造成死鎖）"""
         cookie_dict = {}
         if not win:
             return cookie_dict
 
-        # 優先：Windows CoreWebView2 CookieManager 深度抓取（含 HttpOnly，最可靠）
+        # 最優先：直接呼叫 BrowserView.get_cookies()
+        # 這個方法內建 Invoke + Semaphore，任何執行緒都安全，且能取到 HttpOnly Cookie
         if sys.platform == "win32":
             try:
                 import webview.platforms.winforms as wf
                 inst = wf.BrowserView.instances.get(win.uid)
-                if inst and hasattr(inst, 'browser') and inst.browser:
-                    wv2 = getattr(inst.browser, 'webview', None)
-                    if wv2 and getattr(wv2, 'CoreWebView2', None):
-                        mgr = wv2.CoreWebView2.CookieManager
-                        task = mgr.GetCookiesAsync("https://pipimushroom.com")
-                        task.Wait(2000)
-                        if task.IsCompletedSuccessfully and task.Result:
-                            for c in task.Result:
-                                if c.Name and c.Value:
-                                    cookie_dict[c.Name] = c.Value
-                            logger.info(f"CoreWebView2 抓到 {len(cookie_dict)} 個 Cookie: {list(cookie_dict.keys())}")
+                if inst and hasattr(inst, 'get_cookies'):
+                    cookies = inst.get_cookies() or []
+                    for c in cookies:
+                        name = getattr(c, 'name', None) or (c.get('name') if isinstance(c, dict) else None)
+                        value = getattr(c, 'value', None) or (c.get('value') if isinstance(c, dict) else None)
+                        if name and value:
+                            cookie_dict[name] = value
+                    if cookie_dict:
+                        logger.info(f"BrowserView.get_cookies() 抓到 {len(cookie_dict)} 個: {list(cookie_dict.keys())}")
             except Exception as e:
-                logger.debug(f"CoreWebView2 抓取 Cookie 失敗: {e}")
+                logger.debug(f"BrowserView.get_cookies() 失敗: {e}")
 
-        # 備用：原生 pywebview get_cookies()
+        # 備用：pywebview Window.get_cookies()（可能受 @_loaded_call 限制）
         if not cookie_dict:
             try:
                 cookies = win.get_cookies() or []
@@ -313,24 +312,23 @@ class JsApi:
         return cookie_dict
 
     def get_pipi_cookies_from_main_win(self) -> Dict[str, Any]:
-        """從主視窗 WebView2 直接抓取皮皮蘑菇 Cookie（不需要登入視窗仍然開著）"""
+        """從主視窗 WebView2 抓取皮皮蘑菇 Cookie（所有 WebView2 共用 Cookie 儲存）"""
         if not (self.window_holder and self.window_holder[0]):
             return {"success": False, "error": "主視窗未就緒"}
 
         main_win = self.window_holder[0]
-        cookie_dict = self._extract_pipi_cookies_from_webview_win(main_win)
+        cookie_dict = self._safe_get_cookies_from_win(main_win)
+
+        logger.info(f"主視窗抓取到的 Cookie: {list(cookie_dict.keys())}")
 
         if not cookie_dict:
             return {"success": False, "error": "未抓到任何 Cookie，請確認已在登入視窗完成 Google 授權"}
-
-        logger.info(f"主視窗抓取到的 Cookie: {list(cookie_dict.keys())}")
 
         has_auth = "ASP.NET_SessionId" in cookie_dict or "pm_site_session" in cookie_dict
         if not has_auth:
             return {"success": False, "error": f"未找到認證 Cookie (抓到: {list(cookie_dict.keys())})，請先完成 Google 登入"}
 
         self.mushroom_radar.save_cookies(cookie_dict)
-        # 驗證 API
         test_res = self.mushroom_radar.query_mushrooms({"mode": "list", "page": 1})
         if test_res.get("success"):
             return {"success": True, "message": f"登入成功！抓到 {len(cookie_dict)} 個 Cookie"}
@@ -383,12 +381,12 @@ class JsApi:
                         )
 
                         if is_on_pipi_site:
-                            # 從登入視窗抓 Cookie
-                            cookie_dict = self._extract_pipi_cookies_from_webview_win(login_win)
+                            # 從登入視窗抓 Cookie（BrowserView.get_cookies 線程安全）
+                            cookie_dict = self._safe_get_cookies_from_win(login_win)
                             if not cookie_dict:
                                 # 備用：從主視窗抓（同一用戶資料目錄共用）
                                 if self.window_holder and self.window_holder[0]:
-                                    cookie_dict = self._extract_pipi_cookies_from_webview_win(self.window_holder[0])
+                                    cookie_dict = self._safe_get_cookies_from_win(self.window_holder[0])
 
                             if cookie_dict:
                                 self.mushroom_radar.save_cookies(cookie_dict)
@@ -425,11 +423,11 @@ class JsApi:
 
         # 1. 先試登入視窗
         if hasattr(self, '_login_win') and self._login_win:
-            cookie_dict = self._extract_pipi_cookies_from_webview_win(self._login_win)
+            cookie_dict = self._safe_get_cookies_from_win(self._login_win)
 
         # 2. 不管登入視窗有沒有，再試主視窗（關鍵！WebView2 共用 Cookie 儲存）
         if self.window_holder and self.window_holder[0]:
-            main_cookies = self._extract_pipi_cookies_from_webview_win(self.window_holder[0])
+            main_cookies = self._safe_get_cookies_from_win(self.window_holder[0])
             for k, v in main_cookies.items():
                 if k not in cookie_dict:
                     cookie_dict[k] = v
