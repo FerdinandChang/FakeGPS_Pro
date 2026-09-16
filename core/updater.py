@@ -204,11 +204,12 @@ class AutoUpdater:
         bat_script = os.path.join(temp_dir, "apply_update.bat")
         bat_content = f"""@echo off
 chcp 65001 >nul
-echo 正在等待舊版程式關閉釋放檔案...
+echo 正在等待舊版程式完全關閉...
+taskkill /f /im FakeGPS_Pro.exe >nul 2>&1
 timeout /t 2 /nobreak >nul
 
 echo 正在複製最新檔案覆蓋安裝目錄...
-xcopy /y /e /q "{source_dir}\\*" "{app_dir}\\" >nul
+xcopy /y /e /h /r /k /q "{source_dir}\\*" "{app_dir}\\" >nul
 
 echo 升級完成！正在重新啟動 FakeGPS Pro...
 start "" "{target_exe}"
